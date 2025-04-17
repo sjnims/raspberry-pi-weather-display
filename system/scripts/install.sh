@@ -2,11 +2,11 @@
 # Automated installer for the E‑Ink Weather Display with aggressive power‑saving
 # tweaks.  Run on a fresh Raspberry Pi OS Lite (Bookworm).
 #
-#   curl -sSL https://raw.githubusercontent.com/YOUR-GH/weather-display/main/system/scripts/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/sjnims/raspberry-pi-weather-display/main/system/scripts/install.sh | bash
 
 set -euo pipefail
 
-REPO=https://github.com/YOUR-GH/weather-display.git
+REPO=https://github.com/sjnims/raspberry-pi-weather-display.git
 REPO_DIR=/home/pi/weather-display
 
 info()  { echo -e "\e[32m[install]\e[0m $1"; }
