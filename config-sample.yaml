@@ -1,0 +1,17 @@
+# Location / API
+lat: 33.8852
+lon: -84.5144
+city: Smyrna, GA
+api_key: "YOUR_OPENWEATHER_KEY"
+
+# Units & formatting
+units: imperial        # imperial or metric
+time_24h: false        # true for 24‑hour clock, false for 12‑hour
+
+# How much forecast data to show
+hourly_count: 8        # number of hourly entries in the strip (1–48)
+daily_count: 5         # number of daily entries (1–7)
+
+# Base refresh cadence (minutes)
+# The program automatically doubles this when battery SoC < 25 %.
+refresh_minutes: 120

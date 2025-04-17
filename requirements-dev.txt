@@ -1,0 +1,6 @@
+# Development / tooling only (not installed on the Pi)
+
+black       # code formatting
+ruff        # fast lint + import sorting
+mypy        # optional static typing
+watchdog    # file‑watcher for live preview on save

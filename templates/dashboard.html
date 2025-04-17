@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather</title>
+
+    <!-- Local CSS & bundled icon set -->
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="stylesheet" href="/static/css/weather-icons.css" />
+  </head>
+
+  <body>
+    <!-- ───── Header bar ───── -->
+    <header class="topbar">
+      <span>{{ date }} — {{ city }}</span>
+      <span class="right battery">
+        <i
+          class="wi"
+          :class="{'wi-battery-full': battery_soc >= 75,
+                   'wi-battery-half': battery_soc >= 50 && battery_soc < 75,
+                   'wi-battery-quarter': battery_soc >= 25 && battery_soc < 50,
+                   'wi-battery-alert dark': battery_soc < 25}"
+        ></i>
+        {{ battery_soc }}%
+      </span>
+    </header>
+
+    <!-- ───── Current conditions ───── -->
+    <section class="current">
+      <i class="wi {{ current.weather[0] | owm_icon }} icon-lg"></i>
+      <div class="temps">
+        <div class="temp-now">{{ current.temp | round }}{{ units_temp }}</div>
+        <div class="wind">
+          {{ current.wind_speed | round }} {{ units_wind }}
+          {{ current.wind_deg | deg_to_cardinal }}
+        </div>
+        <div class="precip">
+          {{ (current.rain?.["1h"] or current.snow?.["1h"] or 0) | round(2) }}
+          {{ units_precip }}
+        </div>
+        <div class="extras">
+          <i class="wi wi-moonphase-{{ (moon_phase * 28) | int }}"></i>
+          <i class="wi wi-wind-beaufort-{{ bft }}"></i>
+          <i class="wi wi-wind from-{{ arrow_deg | int }}-deg"></i>
+        </div>
+      </div>
+      <div class="sun">
+        <div>Sunrise {{ sunrise }}</div>
+        <div>Sunset {{ sunset }}</div>
+        <div>Daylight {{ daylight }}</div>
+        <div>UVI max {{ uvi_max }} @ {{ uvi_time }}</div>
+        <div>AQI {{ aqi }}</div>
+        <div class="tiny">Last {{ last_refresh }}</div>
+      </div>
+    </section>
+
+    <!-- ───── Hourly forecast strip ───── -->
+    <table class="hourly">
+      <tr>
+        {% for h in hourly %}
+        <th>{{ h.dt | int | datetime | strftime("%I %p") | lstrip("0") }}</th>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for h in hourly %}
+        <td><i class="wi {{ h.weather[0] | owm_icon }}"></i></td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for h in hourly %}
+        <td>{{ h.temp | round }}°</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for h in hourly %}
+        <td>
+          {{ h.wind_speed | round }}<br />
+          <span class="tiny">{{ h.wind_deg | deg_to_cardinal }}</span>
+        </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for h in hourly %}
+        <td>
+          {{ (h.rain?.["1h"] or h.snow?.["1h"] or 0) | round(2) }}
+        </td>
+        {% endfor %}
+      </tr>
+    </table>
+
+    <!-- ───── Daily forecast strip ───── -->
+    <table class="daily">
+      <tr>
+        {% for d in daily %}
+        <th>{{ d.dt | int | datetime | strftime("%a") }}</th>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for d in daily %}
+        <td><i class="wi {{ d.weather[0] | owm_icon }}"></i></td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for d in daily %}
+        <td>{{ d.temp.min | round }}° / {{ d.temp.max | round }}°</td>
+        {% endfor %}
+      </tr>
+    </table>
+  </body>
+</html>

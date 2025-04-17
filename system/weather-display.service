@@ -1,0 +1,17 @@
+[Unit]
+Description=E‑Ink Weather Display
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/weather-display
+ExecStart=/usr/bin/python3 /home/pi/weather-display/main.py \
+          --config /home/pi/weather-display/config.yaml
+Restart=on-failure
+RestartSec=10
+User=pi
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

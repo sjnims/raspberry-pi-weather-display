@@ -1,0 +1,5 @@
+requests==2.*          # HTTP client for OpenWeather API
+pyyaml==6.*            # load config.yaml
+jinja2==3.*            # HTML templating engine
+pijuice-python==1.*    # battery / RTC access on PiJuice Zero
+waveshare-epaper-it8951==0.1.*  # pre‑built IT8951 driver wheel
