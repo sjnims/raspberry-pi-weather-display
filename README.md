@@ -161,7 +161,7 @@ ssh YOUR-USERNAME@YOUR-PI-IP 'git -C ~/weather-display pull --ff-only && sudo sy
 ## Inspiration
 
 * Kimmo Brunfeldt's [blog post](https://kimmo.blog/posts/7-building-eink-weather-display-for-our-home/) and [GitHub repository](https://github.com/kimmobrunfeldt/eink-weather-display)
-* Faith Ak's InkyPi [GitHub repository](https://github.com/FaithAk/InkyPi)
+* Faith Ak's InkyPi [YouTube video](https://www.youtube.com/watch?v=65sda565l9Y) and [GitHub repository](https://github.com/FaithAk/InkyPi)
 
 ---
 
