@@ -1,4 +1,4 @@
-# E‑Ink Weather Display — Final Polished Version
+# Raspberry Pi E‑Ink Weather Display
 
 A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2 W** and a **Waveshare 10.3″ IT8951 e‑paper HAT** into an ultra‑low‑power framed weather dashboard.
 
@@ -15,6 +15,18 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 * **VCOM = ‑1.45 V** verified at runtime for maximum contrast.
 * Auto‑darkening battery icon when SoC < 25 %.
 * Full OpenWeather One Call 3.0 ingestion, Jinja2 HTML → PNG via `wkhtmltoimage`, GC16 greyscale display.
+
+---
+
+## Hardware
+
+| Item              | Model / Notes                                                      |
+|-------------------|--------------------------------------------------------------------|
+| Compute           | **Raspberry Pi Zero 2 W**                                          |
+| E‑paper display   | **Waveshare 10.3″ 1872 × 1404 IT8951 HAT** (SKU 18434)             |
+| Power / UPS       | **PiJuice Zero** plus **PiJuice 12 000 mAh Li‑Po** battery         |
+| Storage           | 8 GB + micro‑SD card (Raspberry Pi OS Lite)                        |
+| Frame             | Deep‑set picture frame with 10.5‑inch mat opening (optional)       |
 
 ---
 
@@ -56,16 +68,18 @@ weather-display/
         └── install.sh
 ```
 
-*(config.yaml exists only on your local machine/Pi and is ignored by Git.)*
+*Note that config.yaml exists only on your local machine/Pi and is ignored by Git.*
 
 ---
 
 ## Quick Start
 
 ```bash
-ssh pi@raspberrypi.local
-curl -sSL https://raw.githubusercontent.com/YOUR‑GH/weather-display/main/system/scripts/install.sh | bash
+ssh YOUR-USERNAME@YOUR-PI-IP
+curl -sSL https://raw.githubusercontent.com/sjnims/raspberry-pi-weather-display/main/system/scripts/install.sh | bash
 ```
+
+*Be sure to replace `YOUR-USERNAME` and `YOUR-PI-IP` with your actual Raspberry Pi's SSH username and IP address/hostname.*
 
 The installer will:
 
@@ -99,6 +113,14 @@ daily_count: 5         # forecast days
 refresh_minutes: 120   # base interval; doubles automatically below 25 % SoC
 ```
 
+* `lat` and `lon` are your location's latitude and longitude (see [OpenWeather](https://openweathermap.org/) for details).
+* `api_key` is your OpenWeather API key (see [OpenWeather](https://home.openweathermap.org/users/sign_up) for details).
+* `units` is either `imperial` or `metric`.
+* `time_24h` is either `true` or `false` (24‑hour clock).
+* `hourly_count` is the number of hourly forecast hours to display (default **8**).
+* `daily_count` is the number of daily forecast days to display (default **5**).
+* `refresh_minutes` is the base refresh interval in minutes (default **120**). This doubles automatically when the battery SoC < 25 %.
+
 ---
 
 ## Power‑Saving Summary
@@ -119,8 +141,11 @@ Average idle **≈ 18 mA**; a refresh adds ~2 mAh/day → **≈ 21–23�
 ## Manual Update
 
 ```bash
-ssh pi@frame.local 'git -C ~/weather-display pull --ff-only && sudo systemctl restart weather-display'
+ssh YOUR-USERNAME@YOUR-PI-IP 'git -C ~/weather-display pull --ff-only && sudo systemctl restart weather-display'
 ```
+
+*Be sure to replace `YOUR-USERNAME` and `YOUR-PI-IP` with your actual Raspberry Pi's SSH username and IP address/hostname.*
+*Note: `git pull` will not overwrite your local `config.yaml` file.*
 
 ---
 
@@ -131,4 +156,15 @@ ssh pi@frame.local 'git -C ~/weather-display pull --ff-only && sudo systemctl re
 * Typeface: [Atkinson Hyperlegible](https://brailleinstitute.org/freefont)
 * Waveshare IT8951 driver © Waveshare
 
-MIT License – see `LICENSE`.
+---
+
+## Inspiration
+
+* Kimmo Brunfeldt's [blog post](https://kimmo.blog/posts/7-building-eink-weather-display-for-our-home/) and [GitHub repository](https://github.com/kimmobrunfeldt/eink-weather-display)
+* Faith Ak's InkyPi [GitHub repository](https://github.com/FaithAk/InkyPi)
+
+---
+
+## License
+
+MIT License – see [LICENSE](LICENSE).
