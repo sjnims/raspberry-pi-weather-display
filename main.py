@@ -49,23 +49,23 @@ def get_pijuice():
         return None
 
 
-def get_soc(pj) -> int:
-    if pj is None:
+def get_soc(pijuice) -> int:
+    if pijuice is None:
         return 100
     try:
-        return pj.status.GetChargeLevel()["data"]
+        return pijuice.status.GetChargeLevel()["data"]
     except Exception:
         return 100
 
 
-def ensure_rtc_synced(pj):
+def ensure_rtc_synced(pijuice):
     """Set PiJuice RTC once per boot if it’s uninitialised."""
-    if pj is None:
+    if pijuice is None:
         return
     try:
-        rtc_time = pj.rtc.GetTime()["data"]
+        rtc_time = pijuice.rtc.GetTime()["data"]
         if rtc_time["year"] < 2024:
-            pj.rtc.SetTime()
+            pijuice.rtc.SetTime()
             logger.info("RTC set from system clock")
     except Exception as exc:
         logger.debug("RTC sync skipped: %s", exc)
@@ -136,8 +136,8 @@ def main() -> None:
     cfg = load_config(args.config)
     base_minutes = cfg.get("refresh_minutes", 120)
 
-    pj = get_pijuice()
-    ensure_rtc_synced(pj)
+    pijuice = get_pijuice()
+    ensure_rtc_synced(pijuice)
 
     error_streak = 0
     last_full_refresh = datetime.now()
@@ -159,7 +159,7 @@ def main() -> None:
         if args.once:
             break
 
-        soc = get_soc(pj)
+        soc = get_soc(pijuice)
         sleep_min = base_minutes * 2 if soc < 25 else base_minutes
         logger.info("Battery %02d%% → sleeping %d min", soc, sleep_min)
         time.sleep(sleep_min * 60)
