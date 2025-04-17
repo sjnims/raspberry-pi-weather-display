@@ -1,5 +1,5 @@
 [Unit]
-Description=E‑Ink Weather Display
+Description=Raspberry Pi E‑Ink Weather Display
 Wants=network-online.target
 After=network-online.target
 
