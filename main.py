@@ -95,7 +95,9 @@ def html_to_png(html: str, out: Path) -> None:
     )
 
 
-def cycle(cfg: dict, preview: bool, full_refresh: bool) -> bool:
+def cycle(
+    cfg: dict, preview: bool, full_refresh: bool, soc: int, is_charging: bool
+) -> bool:
     """Return True if weather fetched OK, False otherwise (for circuit breaker)."""
     try:
         weather = fetch_weather(cfg)
@@ -104,6 +106,10 @@ def cycle(cfg: dict, preview: bool, full_refresh: bool) -> bool:
         return False
 
     context = build_context(cfg, weather)
+
+    context["battery_soc"] = soc
+    context["is_charging"] = is_charging
+
     html = TEMPLATE.render(**context)
 
     with tempfile.TemporaryDirectory() as td:
@@ -144,7 +150,21 @@ def main() -> None:
 
     while True:
         full_refresh = datetime.now() - last_full_refresh > FULL_REFRESH_INTERVAL
-        ok = cycle(cfg, preview=args.preview, full_refresh=full_refresh)
+        soc = get_soc(pijuice)
+        is_charging = False
+        if pijuice:
+            try:
+                stat = pijuice.status.GetStatus()["data"]
+                is_charging = stat.get("powerinput") == "GOOD"
+            except Exception:
+                pass
+        ok = cycle(
+            cfg,
+            preview=args.preview,
+            full_refresh=full_refresh,
+            soc=soc,
+            is_charging=is_charging,
+        )
         if ok:
             error_streak = 0
             if full_refresh:
@@ -159,7 +179,6 @@ def main() -> None:
         if args.once:
             break
 
-        soc = get_soc(pijuice)
         sleep_min = base_minutes * 2 if soc < 25 else base_minutes
         logger.info("Battery %02d%% → sleeping %d min", soc, sleep_min)
         time.sleep(sleep_min * 60)

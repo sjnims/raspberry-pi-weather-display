@@ -82,7 +82,39 @@ td {
   font-size: 36px;
 }
 
-/* Battery icon darkens under 25 % */
-.battery .dark {
-  color: #000;
+/* ───── Battery bar (5‑step) ───── */
+.battery-wrap{
+  position:relative;
+  display:inline-block;
+  width:80px;
+  height:36px;
+  margin-left:8px;
+  border:4px solid #000;
 }
+
+.battery-wrap::after{
+  content:"";
+  position:absolute;
+  right:-8px;
+  top:8px;
+  width:6px;
+  height:20px;
+  background:#000;
+}
+
+.batt-fill{
+  position:absolute;
+  left:0;
+  top:0;
+  height:100%;
+  background:#000;
+}
+
+.level-100{width:100%}
+.level-75{width:75%}
+.level-50{width:50%}
+.level-25{width:25%}
+.level-0{width:0}
+.battery-wrap.low .batt-fill{opacity:.25}
+.battery-wrap.charging .batt-fill{opacity:1}
+.glyph{position:absolute;right:2px;top:0;font-size:24px;}
