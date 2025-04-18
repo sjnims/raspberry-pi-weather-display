@@ -1,3 +1,8 @@
+# Base runtime deps (same as Pi, minus ARM‑only packages)
+requests==2.*          # HTTP client for OpenWeather API
+pyyaml==6.*            # load config.yaml
+jinja2==3.*            # HTML templating engine
+
 # Development / tooling only (not installed on the Pi)
 
 black       # code formatting
