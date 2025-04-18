@@ -1,12 +1,12 @@
 [Unit]
-Description=Raspberry Pi E‑Ink Weather Display
+Description=Raspberry Pi E‑Ink Weather Display (venv)
 Wants=network-online.target
 After=network-online.target
 
 [Service]
 Type=simple
 WorkingDirectory=/home/pi/weather-display
-ExecStart=/usr/bin/python3 /home/pi/weather-display/main.py \
+ExecStart=/home/pi/weather-display/.venv/bin/python /home/pi/weather-display/main.py \
           --config /home/pi/weather-display/config.yaml
 Restart=on-failure
 RestartSec=10

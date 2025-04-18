@@ -14,7 +14,8 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 * **Wi‑Fi APS‑SD**; HDMI, Bluetooth, LEDs disabled; CPU powersave @ 700 MHz.
 * **VCOM = ‑1.45 V** verified at runtime for maximum contrast.
 * Auto‑darkening battery icon when SoC < 25 %.
-* Full OpenWeather One Call 3.0 ingestion, Jinja2 HTML → PNG via `wkhtmltoimage`, GC16 greyscale display.
+* Full OpenWeather One Call 3.0 ingestion
+* Jinja2 HTML → PNG via `wkhtmltoimage`, GC16 greyscale display.
 
 ---
 
@@ -77,6 +78,10 @@ weather-display/
 ```bash
 ssh YOUR-USERNAME@YOUR-PI-IP
 curl -sSL https://raw.githubusercontent.com/sjnims/raspberry-pi-weather-display/main/system/scripts/install.sh | bash
+
+# The script creates .venv in ~/weather-display and installs all deps there.
+# Logs & service remain identical; to activate venv manually for local testing:
+source ~/weather-display/.venv/bin/activate
 ```
 
 *Be sure to replace `YOUR-USERNAME` and `YOUR-PI-IP` with your actual Raspberry Pi's SSH username and IP address/hostname.*
@@ -120,6 +125,29 @@ refresh_minutes: 120   # base interval; doubles automatically below 25 % SoC
 * `hourly_count` is the number of hourly forecast hours to display (default **8**).
 * `daily_count` is the number of daily forecast days to display (default **5**).
 * `refresh_minutes` is the base refresh interval in minutes (default **120**). This doubles automatically when the battery SoC < 25 %.
+
+---
+
+## Local Preview while Developing
+
+You can render the dashboard **locally** on your Mac/PC without touching the Pi. This speeds up template/CSS tweaks:
+
+```bash
+# one‑shot preview (opens the rendered HTML in your default browser)
+python main.py --config config.yaml --preview --once
+```
+
+### Live‑reload (optional)
+If you installed `watchdog` (in `requirements‑dev.txt`) run:
+
+```bash
+watchmedo shell-command \
+  --patterns="*.html;*.css;*.py" \
+  --recursive \
+  --command='python main.py --config config.yaml --preview --once'
+```
+
+Every save automatically refreshes the browser tab—no Flask required.
 
 ---
 

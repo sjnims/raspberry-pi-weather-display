@@ -8,13 +8,14 @@ set -euo pipefail
 
 REPO=https://github.com/sjnims/raspberry-pi-weather-display.git
 REPO_DIR=/home/pi/weather-display
+VENV_DIR="$REPO_DIR/.venv"
 
 info()  { echo -e "\e[32m[install]\e[0m $1"; }
 warn()  { echo -e "\e[33m[install]\e[0m $1"; }
 
 info "Updating apt & installing base packages"
 sudo apt update
-sudo apt install -y python3-pip wkhtmltopdf git cpufrequtils iw
+sudo apt install -y python3-venv wkhtmltopdf git cpufrequtils iw
 
 info "Cloning repository"
 if [[ ! -d $REPO_DIR ]]; then
@@ -24,8 +25,15 @@ else
   git -C "$REPO_DIR" pull --ff-only
 fi
 
-info "Installing Python requirements"
-pip install --break-system-packages -r "$REPO_DIR/requirements.txt"
+info "Creating virtual environment"
+python3 -m venv "$VENV_DIR"
+source "$VENV_DIR/bin/activate"
+
+info "Installing Python requirements into venv"
+pip install --upgrade pip
+pip install -r "$REPO_DIR/requirements.txt"
+
+deactivate
 
 info "Installing systemd service"
 sudo cp "$REPO_DIR/system/weather-display.service" /etc/systemd/system/
