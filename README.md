@@ -101,6 +101,40 @@ After reboot the display updates every **2 h** (4 h when SoC < 25 %).
 
 ---
 
+## Local Preview while Developing
+
+You can render the dashboard **locally** on your Mac/PC without touching the Pi. This speeds up template/CSS tweaks:
+
+```bash
+# one‑shot preview (opens the rendered HTML in your default browser)
+python main.py --config config.yaml --preview --once
+```
+
+### Live‑reload (optional)
+If you installed `watchdog` (in `requirements‑dev.txt`) run:
+
+```bash
+watchmedo shell-command \
+  --patterns="*.html;*.css;*.py" \
+  --recursive \
+  --command='python main.py --config config.yaml --preview --once'
+```
+
+Every save automatically refreshes the browser tab—no Flask required.
+
+---
+
+## Manual Update
+
+```bash
+ssh YOUR-USERNAME@YOUR-PI-IP 'git -C ~/weather-display pull --ff-only && sudo systemctl restart weather-display'
+```
+
+*Be sure to replace `YOUR-USERNAME` and `YOUR-PI-IP` with your actual Raspberry Pi's SSH username and IP address/hostname.*
+*Note: `git pull` will not overwrite your local `config.yaml` file.*
+
+---
+
 ## Configuration (`config.yaml`)
 
 ```yaml
@@ -128,29 +162,6 @@ refresh_minutes: 120   # base interval; doubles automatically below 25 % SoC
 
 ---
 
-## Local Preview while Developing
-
-You can render the dashboard **locally** on your Mac/PC without touching the Pi. This speeds up template/CSS tweaks:
-
-```bash
-# one‑shot preview (opens the rendered HTML in your default browser)
-python main.py --config config.yaml --preview --once
-```
-
-### Live‑reload (optional)
-If you installed `watchdog` (in `requirements‑dev.txt`) run:
-
-```bash
-watchmedo shell-command \
-  --patterns="*.html;*.css;*.py" \
-  --recursive \
-  --command='python main.py --config config.yaml --preview --once'
-```
-
-Every save automatically refreshes the browser tab—no Flask required.
-
----
-
 ## Power‑Saving Summary
 
 | Tweak                          | Savings |
@@ -163,17 +174,6 @@ Every save automatically refreshes the browser tab—no Flask required.
 | tmpfs `/var/log` & `/tmp`      | ~1–2 mA |
 
 Average idle **≈ 18 mA**; a refresh adds ~2 mAh/day → **≈ 21–23 days** on a 12 000 mAh pack.
-
----
-
-## Manual Update
-
-```bash
-ssh YOUR-USERNAME@YOUR-PI-IP 'git -C ~/weather-display pull --ff-only && sudo systemctl restart weather-display'
-```
-
-*Be sure to replace `YOUR-USERNAME` and `YOUR-PI-IP` with your actual Raspberry Pi's SSH username and IP address/hostname.*
-*Note: `git pull` will not overwrite your local `config.yaml` file.*
 
 ---
 
