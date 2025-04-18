@@ -77,6 +77,36 @@ def ensure_rtc_synced(pijuice):
         logger.debug("RTC sync skipped: %s", exc)
 
 
+def calculate_sleep_minutes(base_minutes: int, soc: int) -> int:
+    """
+    Calculate sleep duration with progressive slowdown based on battery level.
+
+    Parameters
+    ----------
+    base_minutes : int
+        The base refresh interval from config.
+    soc : int
+        Battery State of Charge percentage (0-100).
+
+    Returns
+    -------
+    int
+        Sleep duration in minutes, progressively longer as battery depletes.
+    """
+    if soc <= 5:
+        multiplier = 4.0  # Critical battery: 4x longer refresh
+    elif soc <= 15:
+        multiplier = 3.0  # Very low battery: 3x longer refresh
+    elif soc <= 25:
+        multiplier = 2.0  # Low battery: 2x longer refresh
+    elif soc <= 50:
+        multiplier = 1.5  # Medium battery: 1.5x longer refresh
+    else:
+        multiplier = 1.0  # High battery: normal refresh
+
+    return int(base_minutes * multiplier)
+
+
 # ─────────────────────────── main cycle ───────────────────────────────────────
 
 FULL_REFRESH_INTERVAL = timedelta(hours=24)
@@ -207,8 +237,13 @@ def main() -> None:
         if args.once:
             break
 
-        sleep_min = base_minutes * 2 if soc < 25 else base_minutes
-        logger.info("Battery %02d%% → sleeping %d min", soc, sleep_min)
+        sleep_min = calculate_sleep_minutes(base_minutes, soc)
+        logger.info(
+            "Battery %02d%% → sleeping %d min (%.1fx normal)",
+            soc,
+            sleep_min,
+            sleep_min / base_minutes,
+        )
         time.sleep(sleep_min * 60)
 
 

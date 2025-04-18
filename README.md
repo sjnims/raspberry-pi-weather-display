@@ -160,6 +160,13 @@ refresh_minutes: 120   # base interval; doubles automatically below 25 % SoC
 * `daily_count` is the number of daily forecast days to display (default **5**).
 * `refresh_minutes` is the base refresh interval in minutes (default **120**). This doubles automatically when the battery SoC < 25 %.
 
+* `refresh_minutes` is the base refresh interval in minutes (default **120**). This automatically scales based on battery level:
+  * Above 50%: 1× (normal refresh rate)
+  * 26-50%: 1.5× slower
+  * 16-25%: 2× slower
+  * 6-15%: 3× slower
+  * 0-5%: 4× slower
+
 ---
 
 ## Power‑Saving Summary
