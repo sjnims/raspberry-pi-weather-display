@@ -6,7 +6,7 @@ from typing import Final, Any, Dict
 import requests
 
 from .errors import WeatherAPIError
-from .helpers import deg_to_cardinal, owm_icon_class, beaufort_from_speed
+from .helpers import deg_to_cardinal, owm_icon_class, beaufort_from_speed, hourly_precip
 
 API_URL: Final = "https://api.openweathermap.org/data/3.0/onecall"
 
@@ -82,4 +82,5 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
         "deg_to_cardinal": deg_to_cardinal,
         "arrow_deg": int(round(weather["current"]["wind_deg"] / 5) * 5) % 360,
         "owm_icon": owm_icon_class,
+        "hourly_precip": hourly_precip,
     }

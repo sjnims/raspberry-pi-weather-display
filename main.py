@@ -3,10 +3,14 @@ from __future__ import annotations
 
 import argparse
 import logging
+import platform
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import webbrowser
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -30,6 +34,8 @@ ENV.filters.update(
         "owm_icon": owm_icon_class,
     }
 )
+ENV.filters["datetime"] = lambda ts: datetime.fromtimestamp(ts)
+ENV.filters["strftime"] = lambda d, fmt: d.strftime(fmt)
 TEMPLATE = ENV.get_template("dashboard.html")
 
 # ─────────────────────────── helpers ──────────────────────────────────────────
@@ -76,50 +82,72 @@ def ensure_rtc_synced(pijuice):
 FULL_REFRESH_INTERVAL = timedelta(hours=24)
 
 
-def html_to_png(html: str, out: Path) -> None:
+def html_to_png(html: str, out: Path, preview: bool = False) -> None:
+    """
+    Render `html` to `out` PNG.
+    • macOS/Windows in --preview mode:
+        - create a temp dir
+        - copy project/static → temp/static
+        - rewrite <link href="/static/..."> → <link href="static/...">
+        - open the HTML in the default browser
+    • Linux (or non‑preview) path unchanged: use wkhtmltoimage
+    """
+    if preview and platform.system() != "Linux":
+        tmpdir = Path(tempfile.mkdtemp())
+        # copy static assets next to the html file
+        shutil.copytree(PROJECT_DIR / "static", tmpdir / "static", dirs_exist_ok=True)
+
+        html_path = tmpdir / "dash-preview.html"
+        # make the CSS links relative
+        html_local = re.sub(r'href="/static/', 'href="static/', html)
+        html_path.write_text(html_local, "utf-8")
+
+        webbrowser.open(html_path.as_uri())
+        return
+
+    # ---------- Pi / Linux PNG path ----------
     html_path = out.with_suffix(".html")
-    html_path.write_text(html, encoding="utf-8")
-    subprocess.run(
-        [
-            "xvfb-run",
-            "-a",
-            "wkhtmltoimage",
-            "--width",
-            "1872",
-            "--height",
-            "1404",
-            html_path.as_posix(),
-            out.as_posix(),
-        ],
-        check=True,
-    )
+    html_path.write_text(html, "utf-8")
+
+    cmd = [
+        "wkhtmltoimage",
+        "--width",
+        "1872",
+        "--height",
+        "1404",
+        html_path.as_posix(),
+        out.as_posix(),
+    ]
+    if platform.system() == "Linux":
+        cmd = ["xvfb-run", "-a"] + cmd
+
+    subprocess.run(cmd, check=True)
 
 
 def cycle(
     cfg: dict, preview: bool, full_refresh: bool, soc: int, is_charging: bool
 ) -> bool:
-    """Return True if weather fetched OK, False otherwise (for circuit breaker)."""
+    """Render one dashboard update. Return False on API error (for circuit breaker)."""
     try:
         weather = fetch_weather(cfg)
     except WeatherAPIError as err:
         logger.error("OpenWeather error (%s): %s", err.code, err.message)
         return False
 
-    context = build_context(cfg, weather)
+    ctx = build_context(cfg, weather)
+    ctx["battery_soc"] = soc
+    ctx["is_charging"] = is_charging
 
-    context["battery_soc"] = soc
-    context["is_charging"] = is_charging
-
-    html = TEMPLATE.render(**context)
+    html = TEMPLATE.render(**ctx)
 
     with tempfile.TemporaryDirectory() as td:
         png = Path(td) / "dash.png"
-        html_to_png(html, png)
-        if preview:
-            subprocess.run(["open", png.with_suffix(".html")], check=False)
-        else:
+        html_to_png(html, png, preview=preview)
+
+        if not preview:  # Pi / production path
             # mode 0 = full white‑black‑white, mode 2 = GC16 partial
             display_png(png, mode_override=0 if full_refresh else 2)
+
     return True
 
 
@@ -155,7 +183,7 @@ def main() -> None:
         if pijuice:
             try:
                 stat = pijuice.status.GetStatus()["data"]
-                is_charging = stat.get("powerinput") == "GOOD"
+                is_charging = stat.get("powerInput") == "GOOD"
             except Exception:
                 pass
         ok = cycle(

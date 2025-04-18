@@ -40,8 +40,7 @@
           {{ current.wind_deg | deg_to_cardinal }}
         </div>
         <div class="precip">
-          {{ (current.rain?.["1h"] or current.snow?.["1h"] or 0) | round(2) }}
-          {{ units_precip }}
+          {{ hourly_precip(current) }} {{ units_precip }}
         </div>
         <div class="extras">
           <i class="wi wi-moonphase-{{ (moon_phase * 28) | int }}"></i>
@@ -63,7 +62,7 @@
     <table class="hourly">
       <tr>
         {% for h in hourly %}
-        <th>{{ h.dt | int | datetime | strftime("%I %p") | lstrip("0") }}</th>
+        <th>{{ h.dt | int | datetime | strftime("%-I %p") }}</th>
         {% endfor %}
       </tr>
       <tr>
@@ -86,9 +85,7 @@
       </tr>
       <tr>
         {% for h in hourly %}
-        <td>
-          {{ (h.rain?.["1h"] or h.snow?.["1h"] or 0) | round(2) }}
-        </td>
+        <td>{{ hourly_precip(h) }}</td>
         {% endfor %}
       </tr>
     </table>

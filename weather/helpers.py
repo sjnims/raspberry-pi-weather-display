@@ -39,3 +39,9 @@ def owm_icon_class(weather_item: dict) -> str:
     wid = weather_item["id"]
     variant = "night" if weather_item["icon"].endswith("n") else "day"
     return f"wi-owm-{variant}-{wid}"
+
+
+def hourly_precip(hour: dict) -> float:
+    return round(
+        hour.get("rain", {}).get("1h", 0) or hour.get("snow", {}).get("1h", 0), 2
+    )
