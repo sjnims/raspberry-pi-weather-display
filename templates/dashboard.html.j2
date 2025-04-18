@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/css/style.css" />
     <link rel="stylesheet" href="/static/css/weather-icons.css" />
     <link rel="stylesheet" href="/static/css/weather-icons-wind.css" />
+    <link rel="stylesheet" href="/static/css/weather-icons-wind-override.css" />
   </head>
 
   <body>
@@ -45,7 +46,7 @@
         <div class="extras">
           <i class="wi wi-moonphase-{{ (moon_phase * 28) | int }}"></i>
           <i class="wi wi-wind-beaufort-{{ bft }}"></i>
-          <i class="wi wi-wind from-{{ arrow_deg | int }}-deg"></i>
+          <i class="wi wi-wind-optimized" style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);"></i>
         </div>
       </div>
       <div class="sun">
