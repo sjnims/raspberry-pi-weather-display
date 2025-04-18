@@ -16,6 +16,7 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 * Auto‑darkening battery icon when SoC < 25 %.
 * Full OpenWeather One Call 3.0 ingestion
 * Jinja2 HTML → PNG via `wkhtmltoimage`, GC16 greyscale display.
+* **Error visualization** – API failures display a clear error message on the e-ink screen, showing error details, time of last attempt, and battery status.
 
 ---
 
