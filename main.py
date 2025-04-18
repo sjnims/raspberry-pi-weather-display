@@ -20,6 +20,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weather.api import WeatherAPIError, build_context, fetch_weather
 from weather.helpers import deg_to_cardinal, owm_icon_class
 from display.epaper import display_png
+from display import display_png, render_error_screen
 
 logger = logging.getLogger("weather_display")
 
@@ -162,6 +163,19 @@ def cycle(
         weather = fetch_weather(cfg)
     except WeatherAPIError as err:
         logger.error("OpenWeather error (%s): %s", err.code, err.message)
+
+        if not preview:  # Only show error on actual device, not in preview mode
+            with tempfile.TemporaryDirectory() as td:
+                error_png = Path(td) / "error.png"
+                error_msg = f"API Error ({err.code}): {err.message}"
+                render_error_screen(
+                    error_msg,
+                    soc,
+                    is_charging,
+                    html_to_png_func=html_to_png,
+                    out_path=error_png,
+                )
+
         return False
 
     ctx = build_context(cfg, weather)
