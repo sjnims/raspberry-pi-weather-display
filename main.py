@@ -37,7 +37,7 @@ ENV.filters.update(
 )
 ENV.filters["datetime"] = lambda ts: datetime.fromtimestamp(ts)
 ENV.filters["strftime"] = lambda d, fmt: d.strftime(fmt)
-TEMPLATE = ENV.get_template("dashboard.html")
+TEMPLATE = ENV.get_template("dashboard.html.j2")
 
 # ─────────────────────────── helpers ──────────────────────────────────────────
 
