@@ -17,3 +17,15 @@ disallow_untyped_defs = true
 module = "waveshare_epaper_it8951.*"
 ignore_missing_imports = true
 follow_imports = "skip"
+
+# Ignore errors about IT8951
+[[tool.mypy.overrides]]
+module = "IT8951.*"
+ignore_missing_imports = true
+follow_imports = "skip"
+
+# Ignore errors about IT8951
+[[tool.mypy.overrides]]
+module = "pijuice.*"
+ignore_missing_imports = true
+follow_imports = "skip"
