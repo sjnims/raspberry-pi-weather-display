@@ -75,7 +75,7 @@ def fetch_air_quality(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         resp = requests.get(AQI_URL, params=params, timeout=10)
-    except requests.RequestException as exc:
+    except requests.RequestException as _exc:
         # Don't fail the whole request if AQI is unavailable
         return {"aqi": "N/A"}
 

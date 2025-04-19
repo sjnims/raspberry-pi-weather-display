@@ -1,0 +1,19 @@
+[tool.mypy]
+python_version = "3.9"
+
+# Ignore errors about missing imports
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+# Add additional configuration for mypy
+strict_optional = true
+
+# Enable additional strictness
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+
+# Specifically ignore the hardware library
+[[tool.mypy.overrides]]
+module = "waveshare_epaper_it8951.*"
+ignore_missing_imports = true
+follow_imports = "skip"
