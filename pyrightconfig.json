@@ -1,18 +1,10 @@
 {
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
-  "exclude": [
-    "**/node_modules",
-    "**/__pycache__",
-    "**/venv/**",
-    "**/.venv/**",
-    "**/env/**",
-    "**/.env/**"
-  ],
   "typeCheckingMode": "strict",
   "ignore": [
-    "waveshare_epaper_it8951",
-    "IT8951",
-    "pijuice"
+    "waveshare_epaper_it8951*",
+    "IT8951*",
+    "pijuice*"
   ]
 }

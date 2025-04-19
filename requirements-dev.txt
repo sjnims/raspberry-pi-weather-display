@@ -9,3 +9,5 @@ black       # code formatting
 ruff        # fast lint + import sorting
 mypy        # optional static typing
 watchdog    # file‑watcher for live preview on save
+types-requests # type stubs for requests
+types-pyyaml # type stubs for pyyaml
