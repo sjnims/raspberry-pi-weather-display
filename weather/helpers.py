@@ -1,31 +1,5 @@
 from __future__ import annotations
-from typing import TypedDict, Optional, Dict
-
-
-# Define TypedDict classes for OpenWeatherMap API objects
-class OwmWeatherItem(TypedDict):
-    """OpenWeatherMap weather condition item structure."""
-
-    id: int  # Weather condition ID
-    main: str  # Group parameter (Rain, Snow, etc)
-    description: str  # Weather condition within the group
-    icon: str  # Weather icon ID (e.g., "01d", "02n")
-
-
-class OwmHourlyData(TypedDict):
-    """OpenWeatherMap hourly forecast data structure."""
-
-    dt: int  # Time of forecasted data
-    temp: float  # Temperature
-    feels_like: float  # Human perception of temperature
-    pressure: int  # Atmospheric pressure
-    humidity: int  # Humidity, %
-    wind_speed: float  # Wind speed
-    wind_deg: int  # Wind direction, degrees
-    weather: list[OwmWeatherItem]  # List of weather conditions
-    rain: Optional[Dict[str, float]]  # Rain volume for last hour
-    snow: Optional[Dict[str, float]]  # Snow volume for last hour
-
+from typing import Dict, Any
 
 _DIRECTIONS = [
     "N",
@@ -61,21 +35,16 @@ def beaufort_from_speed(speed_mph: float) -> int:
     return 12
 
 
-def owm_icon_class(weather_item: OwmWeatherItem) -> str:
+def owm_icon_class(weather_item: Dict[str, Any]) -> str:
     """Map an OpenWeather `weather` element to Weather-Icons CSS class."""
     wid = weather_item["id"]
     variant = "night" if weather_item["icon"].endswith("n") else "day"
     return f"wi-owm-{variant}-{wid}"
 
 
-def hourly_precip(hour: OwmHourlyData) -> str:
+def hourly_precip(hour: Dict[str, Any]) -> str:
     """Return precipitation amount as string, or empty string if none."""
-    # Safely handle potentially None values
-    rain = hour.get("rain") or {}  # Default to empty dict if None/falsy
-    snow = hour.get("snow") or {}  # Default to empty dict if None/falsy
-
-    # Use the actual API key "1h" not "one_hour"
-    amount = rain.get("1h", 0) or snow.get("1h", 0)
+    amount = hour.get("rain", {}).get("1h", 0) or hour.get("snow", {}).get("1h", 0)
     return str(round(amount, 2)) if amount > 0 else ""
 
 
