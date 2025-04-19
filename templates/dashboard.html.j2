@@ -52,7 +52,13 @@
         <div>Sunrise {{ sunrise }}</div>
         <div>Sunset {{ sunset }}</div>
         <div>Daylight {{ daylight }}</div>
-        <div>UVI max {{ uvi_max }} @ {{ uvi_time }}</div>
+        <div>
+          {% if uvi_occurred %}
+            Max UV: {{ uvi_max }} (was at {{ uvi_time }})
+          {% else %}
+            Max UV: {{ uvi_max }} (at {{ uvi_time }})
+          {% endif %}
+        </div>
         <div>AQI: <span class="aqi-{{ aqi_value | default(0) }}">{{ aqi }}</span></div>
         <div class="tiny"><i class="wi wi-refresh"></i> {{ last_refresh }}</div>
       </div>
