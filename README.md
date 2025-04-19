@@ -187,9 +187,10 @@ Average idle **≈ 18 mA**; a refresh adds ~2 mAh/day → **≈ 21–23�
 ## Credits
 
 * Weather data © [OpenWeather](https://openweathermap.org/)
-* Icons © [Erik Flowers](https://github.com/erikflowers/weather-icons)
+* Weather Icons © [Erik Flowers](https://github.com/erikflowers/weather-icons)
+* Battery status icons © [sevesalm/eInk-weather-display](https://github.com/sevesalm/eInk-weather-display/tree/master/svg_icons) (I renamed `battery_empty.svg` to `battery_charging.svg` based on the how I've implemented the battery icons)
 * Typeface: [Atkinson Hyperlegible](https://brailleinstitute.org/freefont)
-* Waveshare IT8951 driver © Waveshare
+* Waveshare IT8951 [driver](https://github.com/waveshareteam/IT8951-ePaper) © Waveshare
 
 ---
 
