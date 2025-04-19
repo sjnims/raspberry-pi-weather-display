@@ -18,7 +18,7 @@ import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from weather.api import WeatherAPIError, build_context, fetch_weather
-from weather.helpers import deg_to_cardinal, owm_icon_class
+from weather.helpers import deg_to_cardinal, owm_icon_class, moon_phase_icon
 from display.epaper import display_png
 from display import display_png, render_error_screen
 
@@ -33,6 +33,10 @@ ENV.filters.update(
     {
         "deg_to_cardinal": deg_to_cardinal,
         "owm_icon": owm_icon_class,
+        "moon_phase_icon": moon_phase_icon,
+        "wind_rotation": lambda deg, direction="towards": (
+            deg if direction == "towards" else (deg + 180) % 360
+        ),
     }
 )
 ENV.filters["datetime"] = lambda ts: datetime.fromtimestamp(ts)
@@ -66,7 +70,7 @@ def get_soc(pijuice) -> int:
 
 
 def ensure_rtc_synced(pijuice):
-    """Set PiJuice RTC once per boot if it’s uninitialised."""
+    """Set PiJuice RTC once per boot if it's uninitialised."""
     if pijuice is None:
         return
     try:
@@ -121,7 +125,7 @@ def html_to_png(html: str, out: Path, preview: bool = False) -> None:
         - copy project/static → temp/static
         - rewrite <link href="/static/..."> → <link href="static/...">
         - open the HTML in the default browser
-    • Linux (or non‑preview) path unchanged: use wkhtmltoimage
+    • Linux (or non-preview) path unchanged: use wkhtmltoimage
     """
     if preview and platform.system() != "Linux":
         tmpdir = Path(tempfile.mkdtemp())
@@ -199,7 +203,7 @@ def cycle(
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="E‑Ink Weather Display")
+    ap = argparse.ArgumentParser(description="E-Ink Weather Display")
     ap.add_argument("--config", type=Path, required=True)
     ap.add_argument("--preview", action="store_true")
     ap.add_argument("--once", action="store_true")
@@ -244,7 +248,7 @@ def main() -> None:
         else:
             error_streak += 1
             if error_streak >= 3:
-                logger.warning("3 consecutive failures → backing off ×4 interval")
+                logger.warning("3 consecutive failures → backing off x4 interval")
                 time.sleep(base_minutes * 4 * 60)
                 continue
 
