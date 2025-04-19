@@ -2,12 +2,17 @@
 
 from datetime import datetime
 from pathlib import Path
+from typing import Callable
 
 from display.epaper import display_png
 
 
 def render_error_screen(
-    error_msg: str, soc: int, is_charging: bool, html_to_png_func, out_path: Path
+    error_msg: str,
+    soc: int,
+    is_charging: bool,
+    html_to_png_func: Callable[[str, Path], None],
+    out_path: Path
 ) -> None:
     """
     Create and display an error screen when API calls fail.
@@ -20,7 +25,7 @@ def render_error_screen(
         Battery state of charge.
     is_charging : bool
         Whether the device is charging.
-    html_to_png_func : callable
+    html_to_png_func : Callable[[str, Path], None]
         Function to convert HTML to PNG.
     out_path : Path
         Path to save the output PNG.
