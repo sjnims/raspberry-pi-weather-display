@@ -13,48 +13,30 @@ import time
 import webbrowser
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from weather.api import WeatherAPIError, build_context, fetch_weather
 from weather.helpers import deg_to_cardinal, owm_icon_class, moon_phase_icon
-from display.epaper import display_png
 from display import display_png, render_error_screen
 
-logger = logging.getLogger("weather_display")
+# ─────────────────────────── constants ───────────────────────────────────────
 
+FULL_REFRESH_INTERVAL = timedelta(hours=24)
 PROJECT_DIR = Path(__file__).resolve().parent
-ENV = Environment(
-    loader=FileSystemLoader(PROJECT_DIR / "templates"),
-    autoescape=select_autoescape(["html"]),
-)
-ENV.filters.update(
-    {
-        "deg_to_cardinal": deg_to_cardinal,
-        "owm_icon": owm_icon_class,
-        "moon_phase_icon": moon_phase_icon,
-        "wind_rotation": lambda deg, direction="towards": (
-            deg if direction == "towards" else (deg + 180) % 360
-        ),
-    }
-)
-ENV.filters["datetime"] = lambda ts: datetime.fromtimestamp(ts)
-ENV.filters["strftime"] = lambda d, fmt: d.strftime(fmt)
-TEMPLATE = ENV.get_template("dashboard.html.j2")
 
 # ─────────────────────────── helpers ──────────────────────────────────────────
 
-
-def load_config(path: Path) -> dict:
+def load_config(path: Path) -> Dict[str, Any]:
     with path.open() as f:
         return yaml.safe_load(f)
 
 
-def get_pijuice():
+def get_pijuice() -> Optional[Any]:
     try:
         import pijuice  # type: ignore
-
         return pijuice.PiJuice(1, 0x14)
     except Exception:
         return None
@@ -112,9 +94,18 @@ def calculate_sleep_minutes(base_minutes: int, soc: int) -> int:
     return int(base_minutes * multiplier)
 
 
-# ─────────────────────────── main cycle ───────────────────────────────────────
+def wind_rotation(deg: float, direction: str = "towards") -> float:
+    """
+    Calculate adjusted wind direction angle.
 
-FULL_REFRESH_INTERVAL = timedelta(hours=24)
+    Args:
+        deg: Wind direction in degrees (0-360)
+        direction: Either "towards" (default) or any other value for "from" direction
+
+    Returns:
+        Adjusted angle in degrees
+    """
+    return deg if direction == "towards" else (deg + 180) % 360
 
 
 def html_to_png(html: str, out: Path, preview: bool = False) -> None:
@@ -159,6 +150,28 @@ def html_to_png(html: str, out: Path, preview: bool = False) -> None:
     subprocess.run(cmd, check=True)
 
 
+# ─────────────────────────── environment setup ───────────────────────────────
+
+# Set up Jinja2 environment
+ENV = Environment(
+    loader=FileSystemLoader(PROJECT_DIR / "templates"),
+    autoescape=select_autoescape(["html"]),
+)
+ENV.filters.update(
+    {
+        "deg_to_cardinal": deg_to_cardinal,
+        "owm_icon": owm_icon_class,
+        "moon_phase_icon": moon_phase_icon,
+        "wind_rotation": wind_rotation,
+    }
+)
+ENV.filters["datetime"] = lambda ts: datetime.fromtimestamp(ts)
+ENV.filters["strftime"] = lambda d, fmt: d.strftime(fmt)
+TEMPLATE = ENV.get_template("dashboard.html.j2")
+
+
+# ─────────────────────────── main cycle ───────────────────────────────────────
+
 def cycle(
     cfg: dict, preview: bool, full_refresh: bool, soc: int, is_charging: bool
 ) -> bool:
@@ -201,7 +214,6 @@ def cycle(
 
 # ─────────────────────────── entrypoint ───────────────────────────────────────
 
-
 def main() -> None:
     ap = argparse.ArgumentParser(description="E-Ink Weather Display")
     ap.add_argument("--config", type=Path, required=True)
@@ -210,10 +222,12 @@ def main() -> None:
     ap.add_argument("--debug", action="store_true")
     args = ap.parse_args()
 
+    global logger
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
+    logger = logging.getLogger("weather_display")
 
     cfg = load_config(args.config)
     base_minutes = cfg.get("refresh_minutes", 120)
