@@ -12,7 +12,7 @@ API_URL: Final = "https://api.openweathermap.org/data/3.0/onecall"
 
 # Human‑readable explanations for common HTTP errors
 HTTP_ERROR_MAP: Final = {
-    400: "Bad request – check lat/lon or parameters",
+    400: "Bad request - check lat/lon or parameters",
     401: "Invalid or missing API key",
     403: "Account blocked / key revoked",
     404: "Coordinates returned no data",
@@ -25,7 +25,8 @@ HTTP_ERROR_MAP: Final = {
 
 
 def fetch_weather(cfg: Dict[str, Any]) -> Dict[str, Any]:
-    """Retrieve the full One Call 3.0 payload and raise on any error."""
+    """Retrieve weather and air quality data."""
+    # Get the main weather data (existing code)
     params = {
         "lat": cfg["lat"],
         "lon": cfg["lon"],
@@ -49,25 +50,115 @@ def fetch_weather(cfg: Dict[str, Any]) -> Dict[str, Any]:
             msg = HTTP_ERROR_MAP.get(resp.status_code, resp.text)
         raise WeatherAPIError(resp.status_code, msg)
 
-    return resp.json()
+    weather_data = resp.json()
+
+    # Add air quality data to the weather data
+    try:
+        air_quality = fetch_air_quality(cfg)
+        weather_data["air_quality"] = air_quality
+    except Exception:
+        # Don't let air quality failures break the whole display
+        weather_data["air_quality"] = {"aqi": "N/A"}
+
+    return weather_data
+
+
+def fetch_air_quality(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Retrieve air quality data from OpenWeather API."""
+    AQI_URL = "https://api.openweathermap.org/data/2.5/air_pollution"
+
+    params = {
+        "lat": cfg["lat"],
+        "lon": cfg["lon"],
+        "appid": cfg["api_key"],
+    }
+
+    try:
+        resp = requests.get(AQI_URL, params=params, timeout=10)
+    except requests.RequestException as exc:
+        # Don't fail the whole request if AQI is unavailable
+        return {"aqi": "N/A"}
+
+    if resp.status_code != 200:
+        return {"aqi": "N/A"}
+
+    data = resp.json()
+
+    # Extract the AQI value - OpenWeather uses a 1-5 scale:
+    # 1: Good, 2: Fair, 3: Moderate, 4: Poor, 5: Very Poor
+    try:
+        aqi_value = data["list"][0]["main"]["aqi"]
+        aqi_labels = ["", "Good", "Fair", "Moderate", "Poor", "Very Poor"]
+        return {
+            "aqi": aqi_labels[aqi_value],
+            "aqi_value": aqi_value,
+            "components": data["list"][0]["components"],
+        }
+    except (KeyError, IndexError):
+        return {"aqi": "N/A"}
 
 
 def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any]:
     """Transform raw API JSON into template‑friendly context."""
     now = datetime.now(timezone.utc).astimezone()
+    today = now.date()  # Get just the date part for comparison
+
+    # Handle sunrise/sunset
+    sunrise_dt = datetime.fromtimestamp(weather["current"]["sunrise"])
+    sunset_dt = datetime.fromtimestamp(weather["current"]["sunset"])
+
+    # Calculate daylight hours and minutes
+    daylight_seconds = weather["current"]["sunset"] - weather["current"]["sunrise"]
+    daylight_hours = int(daylight_seconds // 3600)
+    daylight_minutes = int((daylight_seconds % 3600) // 60)
+
+    # Find UVI max and time for current day only
+    uvi_data = []
+    for hour in weather["hourly"]:
+        hour_dt = datetime.fromtimestamp(hour["dt"])
+        if hour_dt.date() == today:  # Only include hours from today
+            uvi_data.append((hour["dt"], hour.get("uvi", 0)))
+
+    # Handle edge case if no data for today (late in day)
+    if not uvi_data:
+        # Just use the current UVI value
+        max_uvi_value = weather["current"].get("uvi", 0)
+        max_uvi_time = now
+    else:
+        max_uvi_entry = max(uvi_data, key=lambda x: x[1])
+        max_uvi_value = max_uvi_entry[1]
+        max_uvi_time = datetime.fromtimestamp(max_uvi_entry[0])
+
+    # Get AQI if available (may require additional API call or parameters)
+    aqi = weather.get("air_quality", {}).get("aqi", "N/A")
 
     return {
         # Meta
         "date": now.strftime("%A, %B %d %Y"),
         "city": cfg["city"],
         "last_refresh": now.strftime(
-            "%I:%M %p %Z" if not cfg.get("time_24h") else "%H:%M %Z"
+            "%-I:%M %p %Z" if not cfg.get("time_24h") else "%-H:%M %Z"
         ),
         "units_temp": "°F" if cfg["units"] == "imperial" else "°C",
         "units_wind": "mph" if cfg["units"] == "imperial" else "m/s",
         "units_precip": "in" if cfg["units"] == "imperial" else "mm",
         # Current conditions
         "current": weather["current"],
+        # Sun information
+        "sunrise": sunrise_dt.strftime(
+            "%-I:%M %p" if not cfg.get("time_24h") else "%-H:%M"
+        ),
+        "sunset": sunset_dt.strftime(
+            "%-I:%M %p" if not cfg.get("time_24h") else "%-H:%M"
+        ),
+        "daylight": f"{daylight_hours}h {daylight_minutes}m",
+        # UV information
+        "uvi_max": f"{max_uvi_value:.1f}",
+        "uvi_time": max_uvi_time.strftime(
+            "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
+        ),
+        # Air quality
+        "aqi": aqi,
         # Moon phase
         "moon_phase": weather["daily"][0]["moon_phase"],
         # Beafort scale
