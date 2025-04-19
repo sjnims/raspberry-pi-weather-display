@@ -99,7 +99,7 @@ def fetch_air_quality(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any]:
-    """Transform raw API JSON into template‑friendly context."""
+    """Transform raw API JSON into template-friendly context."""
     now = datetime.now(timezone.utc).astimezone()
     today = now.date()  # Get just the date part for comparison
 
@@ -113,7 +113,7 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
     daylight_minutes = int((daylight_seconds % 3600) // 60)
 
     # Find UVI max and time for current day only
-    uvi_data = []
+    uvi_data: list[tuple[int, float]] = []
     for hour in weather["hourly"]:
         hour_dt = datetime.fromtimestamp(hour["dt"])
         if hour_dt.date() == today:  # Only include hours from today
