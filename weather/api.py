@@ -114,10 +114,26 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
 
     # Find UVI max and time for current day only
     uvi_data: list[tuple[int, float]] = []
+
+    # First check current hour
+    current_uvi = weather["current"].get("uvi", 0)
+    current_time = weather["current"]["dt"]
+    uvi_data.append((current_time, current_uvi))
+
+    # Then add all remaining hourly forecasts for today
     for hour in weather["hourly"]:
         hour_dt = datetime.fromtimestamp(hour["dt"])
         if hour_dt.date() == today:  # Only include hours from today
             uvi_data.append((hour["dt"], hour.get("uvi", 0)))
+
+    # Find the maximum UVI value and its time
+    max_uvi_entry = max(uvi_data, key=lambda x: x[1])
+    max_uvi_value = max_uvi_entry[1]
+    max_uvi_time = datetime.fromtimestamp(max_uvi_entry[0])
+
+    # Format with indication of past/future
+    is_future = max_uvi_time > now
+    time_format = "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
 
     # Handle edge case if no data for today (late in day)
     if not uvi_data:
@@ -129,7 +145,7 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
         max_uvi_value = max_uvi_entry[1]
         max_uvi_time = datetime.fromtimestamp(max_uvi_entry[0])
 
-    # Get AQI if available (may require additional API call or parameters)
+    # Get AQI if available
     aqi = weather.get("air_quality", {}).get("aqi", "N/A")
 
     return {
@@ -154,9 +170,8 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
         "daylight": f"{daylight_hours}h {daylight_minutes}m",
         # UV information
         "uvi_max": f"{max_uvi_value:.1f}",
-        "uvi_time": max_uvi_time.strftime(
-            "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
-        ),
+        "uvi_time": max_uvi_time.strftime(time_format),
+        "uvi_occurred": not is_future,  # To indicate if it already happened
         # Air quality
         "aqi": aqi,
         # Moon phase
@@ -169,7 +184,7 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
         # Forecast slices
         "hourly": weather["hourly"][: cfg.get("hourly_count", 8)],
         "daily": weather["daily"][1 : 1 + cfg.get("daily_count", 5)],
-        # Helper filters (used directly in Jinja templates if desired)
+        # Helper filters (used directly in Jinja templates)
         "deg_to_cardinal": deg_to_cardinal,
         "arrow_deg": int(round(weather["current"]["wind_deg"] / 5) * 5) % 360,
         "owm_icon": owm_icon_class,
