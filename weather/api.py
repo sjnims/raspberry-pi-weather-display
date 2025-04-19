@@ -26,7 +26,7 @@ HTTP_ERROR_MAP: Final = {
 
 def fetch_weather(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """Retrieve weather and air quality data."""
-    # Get the main weather data (existing code)
+    # Get the main weather data
     params = {
         "lat": cfg["lat"],
         "lon": cfg["lon"],
@@ -104,8 +104,8 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
     today = now.date()  # Get just the date part for comparison
 
     # Handle sunrise/sunset
-    sunrise_dt = datetime.fromtimestamp(weather["current"]["sunrise"])
-    sunset_dt = datetime.fromtimestamp(weather["current"]["sunset"])
+    sunrise_dt = datetime.fromtimestamp(weather["current"]["sunrise"], tz=timezone.utc).astimezone()
+    sunset_dt = datetime.fromtimestamp(weather["current"]["sunset"], tz=timezone.utc).astimezone()
 
     # Calculate daylight hours and minutes
     daylight_seconds = weather["current"]["sunset"] - weather["current"]["sunrise"]
@@ -122,18 +122,9 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
 
     # Then add all remaining hourly forecasts for today
     for hour in weather["hourly"]:
-        hour_dt = datetime.fromtimestamp(hour["dt"])
+        hour_dt = datetime.fromtimestamp(hour["dt"], tz=timezone.utc).astimezone()
         if hour_dt.date() == today:  # Only include hours from today
             uvi_data.append((hour["dt"], hour.get("uvi", 0)))
-
-    # Find the maximum UVI value and its time
-    max_uvi_entry = max(uvi_data, key=lambda x: x[1])
-    max_uvi_value = max_uvi_entry[1]
-    max_uvi_time = datetime.fromtimestamp(max_uvi_entry[0])
-
-    # Format with indication of past/future
-    is_future = max_uvi_time > now
-    time_format = "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
 
     # Handle edge case if no data for today (late in day)
     if not uvi_data:
@@ -141,12 +132,14 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
         max_uvi_value = weather["current"].get("uvi", 0)
         max_uvi_time = now
     else:
+        # Find the maximum UVI value and its time
         max_uvi_entry = max(uvi_data, key=lambda x: x[1])
         max_uvi_value = max_uvi_entry[1]
-        max_uvi_time = datetime.fromtimestamp(max_uvi_entry[0])
+        max_uvi_time = datetime.fromtimestamp(max_uvi_entry[0], tz=timezone.utc).astimezone()
 
-    # Get AQI if available
-    aqi = weather.get("air_quality", {}).get("aqi", "N/A")
+    # Format with indication of past/future
+    is_future = max_uvi_time > now
+    time_format = "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
 
     return {
         # Meta
@@ -173,7 +166,7 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
         "uvi_time": max_uvi_time.strftime(time_format),
         "uvi_occurred": not is_future,  # To indicate if it already happened
         # Air quality
-        "aqi": aqi,
+        "aqi": weather["air_quality"]["aqi"],
         # Moon phase
         "moon_phase": weather["daily"][0]["moon_phase"],
         # Beafort scale
