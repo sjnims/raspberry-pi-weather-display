@@ -1,34 +1,35 @@
-# File: main.py  (circuit breaker, daily full refresh, RTC set, adaptive sleep)
 from __future__ import annotations
 
-import argparse
+# ── standard library ──────────────────────────────────────────────────────────
+
 import logging
-import platform
-import re
-import shutil
-import subprocess
 import sys
 import tempfile
 import time
-import webbrowser
-import zoneinfo
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Protocol, TypedDict, Any, cast
+from typing import Any, Dict, Optional, Protocol, TypedDict, cast
+
+# ── third‑party ───────────────────────────────────────────────────────────────
 
 import yaml
-from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
+import typer
 
+# ── rpiweather packages ───────────────────────────────────────────────────────
+
+from rpiweather.display.epaper import display_png
+from rpiweather.display.error_ui import render_error_screen
+from rpiweather.display.render import (
+    FULL_REFRESH_INTERVAL,
+    TEMPLATE,
+    html_to_png,
+)
 from rpiweather.weather.api import WeatherAPIError, build_context, fetch_weather
-from rpiweather.weather.helpers import deg_to_cardinal, moon_phase_icon, owm_icon_class
-from rpiweather.display import display_png, render_error_screen
 
-# ─────────────────────────── constants ───────────────────────────────────────
+# ── CLI setup ────────────────────────────────────────────────────────────────
 
-FULL_REFRESH_INTERVAL = timedelta(hours=24)
-PROJECT_DIR = Path(__file__).resolve().parent
-
-# ─────────────────────────── typing helpers ──────────────────────────────────
+app = typer.Typer(add_completion=False)
+logger: logging.Logger = logging.getLogger("rpiweather")
 
 
 class PiJuiceLike(Protocol):
@@ -100,8 +101,7 @@ def calculate_sleep_minutes(base_minutes: int, soc: int) -> int:
 
     Returns
     -------
-    int
-        Sleep duration in minutes, progressively longer as battery depletes.
+    int: Sleep duration in minutes, progressively longer as battery depletes.
     """
     if soc <= 5:
         multiplier = 4.0  # Critical battery: 4x longer refresh
@@ -116,92 +116,6 @@ def calculate_sleep_minutes(base_minutes: int, soc: int) -> int:
 
     return int(base_minutes * multiplier)
 
-
-def wind_rotation(deg: float, direction: str = "towards") -> float:
-    """
-    Calculate adjusted wind direction angle.
-
-    Args:
-        deg: Wind direction in degrees (0-360)
-        direction: Either "towards" (default) or any other value for "from" direction
-
-    Returns:
-        Adjusted angle in degrees
-    """
-    return deg if direction == "towards" else (deg + 180) % 360
-
-
-def html_to_png(html: str, out: Path, preview: bool = False) -> None:
-    """
-    Render `html` to `out` PNG.
-    • macOS/Windows in --preview mode:
-        - create a temp dir
-        - copy project/static → temp/static
-        - rewrite <link href="/static/..."> → <link href="static/...">
-        - open the HTML in the default browser
-    • Linux (or non-preview) path unchanged: use wkhtmltoimage
-    """
-    if preview and platform.system() != "Linux":
-        tmpdir = Path(tempfile.mkdtemp())
-        # copy static assets next to the html file
-        shutil.copytree(PROJECT_DIR / "static", tmpdir / "static", dirs_exist_ok=True)
-        html_path = tmpdir / "dash-preview.html"
-        # make the CSS links relative
-        html_local = re.sub(r'href="/static/', 'href="static/', html)
-        html_path.write_text(html_local, "utf-8")
-        webbrowser.open(html_path.as_uri())
-        return
-
-    # ---------- Pi / Linux PNG path ----------
-    html_path = out.with_suffix(".html")
-    html_path.write_text(html, "utf-8")
-
-    cmd = [
-        "wkhtmltoimage",
-        "--width",
-        "1872",
-        "--height",
-        "1404",
-        html_path.as_posix(),
-        out.as_posix(),
-    ]
-    if platform.system() == "Linux":
-        cmd = ["xvfb-run", "-a"] + cmd
-
-    subprocess.run(cmd, check=True)
-
-
-# ─────────────────────────── environment setup ───────────────────────────────
-
-logger: logging.Logger = logging.getLogger("weather_display")
-LOCAL_TZ = zoneinfo.ZoneInfo("America/New_York")
-
-ENV = Environment(
-    loader=FileSystemLoader(PROJECT_DIR / "templates"),
-    autoescape=select_autoescape(["html"]),
-)
-ENV.filters.update(
-    {
-        "deg_to_cardinal": deg_to_cardinal,
-        "owm_icon": owm_icon_class,
-        "moon_phase_icon": moon_phase_icon,
-        "wind_rotation": wind_rotation,
-    }
-)
-
-
-def ts_to_local(ts: int) -> datetime:
-    return datetime.fromtimestamp(ts, tz=LOCAL_TZ)
-
-
-def dt_format(d: datetime, fmt: str = "%H") -> str:
-    return d.strftime(fmt)
-
-
-ENV.filters["ts_to_dt"] = ts_to_local
-ENV.filters["strftime"] = dt_format
-
-TEMPLATE: Template = ENV.get_template("dashboard.html.j2")
 
 # ─────────────────────────── main cycle ───────────────────────────────────────
 
@@ -250,20 +164,19 @@ def cycle(
 # ─────────────────────────── entrypoint ───────────────────────────────────────
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description="E-Ink Weather Display")
-    ap.add_argument("--config", type=Path, required=True)
-    ap.add_argument("--preview", action="store_true")
-    ap.add_argument("--once", action="store_true")
-    ap.add_argument("--debug", action="store_true")
-    args = ap.parse_args()
-
+@app.command()
+def run(
+    config: Path = typer.Option(..., "--config", "-c", exists=True, dir_okay=False),
+    preview: bool = typer.Option(False, "--preview", "-p"),
+    once: bool = typer.Option(False, "--once", "-1", help="Run one cycle then exit"),
+    debug: bool = typer.Option(False, "--debug"),
+) -> None:
     logging.basicConfig(
-        level=logging.DEBUG if args.debug else logging.INFO,
+        level=logging.DEBUG if debug else logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
 
-    cfg: WeatherCfg = load_config(args.config)  # type: ignore[assignment]
+    cfg: WeatherCfg = load_config(config)  # type: ignore[assignment]
     base_minutes = cfg.get("refresh_minutes", 120)
 
     pijuice = get_pijuice()
@@ -284,7 +197,7 @@ def main() -> None:
                 pass
         ok = cycle(
             cfg,
-            preview=args.preview,
+            preview=preview,
             full_refresh=full_refresh,
             soc=soc,
             is_charging=is_charging,  # type: ignore[arg-type]
@@ -300,7 +213,7 @@ def main() -> None:
                 time.sleep(base_minutes * 4 * 60)
                 continue
 
-        if args.once:
+        if once:
             break
 
         sleep_min = calculate_sleep_minutes(base_minutes, soc)
@@ -315,6 +228,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
-        main()
+        app()
     except KeyboardInterrupt:
         sys.exit(0)
