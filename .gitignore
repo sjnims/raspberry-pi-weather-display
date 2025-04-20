@@ -24,3 +24,12 @@ config.yaml
 # Systemd copies outside tree
 *.service
 *.timer
+
+# keep our tracked unit files in deploy/
+!deploy/*.service
+!deploy/*.timer
+
+# Local caches
+.pytest_cache/
+.ruff_cache/
+__pypackages__/
