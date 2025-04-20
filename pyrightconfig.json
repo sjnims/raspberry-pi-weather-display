@@ -2,6 +2,7 @@
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
   "typeCheckingMode": "strict",
+  "stubPath": "typings",
   "ignore": [
     "waveshare_epaper_it8951*",
     "IT8951*",

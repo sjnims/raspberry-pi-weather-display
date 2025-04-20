@@ -68,7 +68,7 @@
     <table class="hourly">
       <tr>
         {% for h in hourly %}
-        <th>{{ h.dt | int | datetime | strftime("%-I %p") }}</th>
+        <th>{{ h.dt | int | ts_to_dt | strftime("%-I %p") }}</th>
         {% endfor %}
       </tr>
       <tr>
@@ -100,7 +100,7 @@
     <table class="daily">
       <tr>
         {% for d in daily %}
-        <th>{{ d.dt | int | datetime | strftime("%a") }}</th>
+        <th>{{ d.dt | int | ts_to_dt | strftime("%a") }}</th>
         {% endfor %}
       </tr>
       <tr>
