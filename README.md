@@ -18,6 +18,8 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 * Jinja2 HTML → PNG via `wkhtmltoimage`, GC16 greyscale display.
 * **Error visualization** – API failures display a clear error message on the e-ink screen, showing error details, time of last attempt, and battery status.
 
+A Typer‑based CLI (`weather`) replaces the old `python main.py` entry‑point: run `weather --help` for commands.
+
 ---
 
 ## Hardware
@@ -35,50 +37,48 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 ## Directory Tree
 
 ```text
-weather-display/
-├── .gitignore
-├── LICENSE
-├── README.md
-├── config-sample.yaml
-├── main.py
-├── requirements.txt
-├── requirements-dev.txt
-├── display/
-│   └── epaper.py
-├── weather/
-│   ├── __init__.py
-│   ├── api.py
-│   ├── errors.py
-│   └── helpers.py
+raspberry‑pi‑weather-display/
+├── src/
+│   └── rpiweather/
+│       ├── cli.py
+│       ├── display/
+│       │   ├── __init__.py
+│       │   ├── epaper.py
+│       │   ├── error_ui.py
+│       │   └── render.py
+│       └── weather/
+│           ├── __init__.py
+│           ├── api.py
+│           ├── errors.py
+│           └── helpers.py
+├── deploy/
+│   ├── weather-display.service
+│   └── scripts/
+│       └── install.sh
 ├── templates/
-│   └── dashboard.html
+│   └── dashboard.html.j2
 ├── static/
-│   ├── css/
-│   │   ├── style.css
-│   │   ├── weather-icons-wind.css
-│   │   └── weather-icons.css
-│   └── fonts/
-│       ├── Atkinson-Hyperlegible-Regular-102a.woff2
-│       ├── weathericons-regular-webfont.eot
-│       ├── weathericons-regular-webfont.svg
-│       ├── weathericons-regular-webfont.ttf
-│       ├── weathericons-regular-webfont.woff
-│       └── weathericons-regular-webfont.woff2
-└── system/
-    ├── weather-display.service
-    └── scripts/
-        └── install.sh
+│   ├── css/ …
+│   ├── icons/ …
+│   └── fonts/ …
+├── config-sample.yaml
+├── LICENSE
+├── pyproject.toml
+├── pyrightconfig.json
+├── README.md
+├── requirements-dev.txt
+└── requirements.txt
 ```
-
-*Note that config.yaml exists only on your local machine/Pi and is ignored by Git.*
 
 ---
 
 ## Quick Start
 
+# TODO: Update for v.2.0 branch install instructions
+
 ```bash
 ssh YOUR-USERNAME@YOUR-PI-IP
-curl -sSL https://raw.githubusercontent.com/sjnims/raspberry-pi-weather-display/main/system/scripts/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/sjnims/raspberry-pi-weather-display/main/deploy/scripts/install.sh | bash
 
 # The script creates .venv in ~/weather-display and installs all deps there.
 # Logs & service remain identical; to activate venv manually for local testing:
@@ -98,7 +98,7 @@ The installer will:
 * Mount `/var/log` and `/tmp` on tmpfs
 * Reboot
 
-After reboot the display updates every **2 h** (4 h when SoC < 25 %).
+After reboot the display updates every **2 h** (less as SoC decreases beyond certain thresholds, see config below).
 
 ---
 
@@ -107,8 +107,8 @@ After reboot the display updates every **2 h** (4 h when SoC < 25 %).
 You can render the dashboard **locally** on your Mac/PC without touching the Pi. This speeds up template/CSS tweaks:
 
 ```bash
-# one‑shot preview (opens the rendered HTML in your default browser)
-python main.py --config config.yaml --preview --once
+# one‑shot preview
+poetry run weather run --config config.yaml --preview --once
 ```
 
 ### Live‑reload (optional)
@@ -118,7 +118,7 @@ If you installed `watchdog` (in `requirements‑dev.txt`) run:
 watchmedo shell-command \
   --patterns="*.html;*.css;*.py" \
   --recursive \
-  --command='python main.py --config config.yaml --preview --once'
+  --command='poetry run weather run --config config.yaml --preview --once'
 ```
 
 Every save automatically refreshes the browser tab—no Flask required.
@@ -126,6 +126,8 @@ Every save automatically refreshes the browser tab—no Flask required.
 ---
 
 ## Manual Update
+
+# TODO: Update for v.2.0 branch update instructions
 
 ```bash
 ssh YOUR-USERNAME@YOUR-PI-IP 'git -C ~/weather-display pull --ff-only && sudo systemctl restart weather-display'
