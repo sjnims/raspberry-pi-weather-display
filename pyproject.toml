@@ -37,3 +37,8 @@ pytest = "^8.0"
 pytest-asyncio = "^0.23"
 types-PyYAML = "^6.0"
 types-requests = "^2.31"
+
+"""Minimal smoke test to keep CI green until real tests are added."""
+
+def test_smoke() -> None:
+    assert True
