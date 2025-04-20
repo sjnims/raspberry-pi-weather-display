@@ -37,3 +37,8 @@ ruff = "^0.3"
 types-jinja2 = "^2.11"
 types-pyyaml = "^6.0"
 types-requests = "^2.32"
+pre-commit = "^4.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
