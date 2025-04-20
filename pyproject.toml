@@ -6,6 +6,9 @@ authors = ["Steve Nims <sjnims@gmail.com>"]
 readme = "README.md"
 packages = [
     { include = "rpiweather", from = "src" },
+]
+
+include = [
     { path = "deploy/scripts/install.sh", format = "sdist" },
     { path = "deploy/weather-display.service", format = "sdist" },
 ]
