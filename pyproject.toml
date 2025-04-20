@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "E-Ink weather dashboard for Raspberry Pi Zero 2 W"
 authors = ["Steve Nims <sjnims@gmail.com>"]
 readme = "README.md"
-packages = [{ include = "rpiweather", from = "src" }]
+packages = [
+    { include = "rpiweather", from = "src" },
+    { path = "deploy/scripts/install.sh", format = "sdist" },
+    { path = "deploy/weather-display.service", format = "sdist" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
