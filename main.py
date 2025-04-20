@@ -19,8 +19,8 @@ from typing import Dict, Optional, Protocol, TypedDict, Any, cast
 import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
 
-from weather.api import WeatherAPIError, build_context, fetch_weather
-from weather.helpers import deg_to_cardinal, moon_phase_icon, owm_icon_class
+from rpiweather.weather.api import WeatherAPIError, build_context, fetch_weather
+from rpiweather.weather.helpers import deg_to_cardinal, moon_phase_icon, owm_icon_class
 from display import display_png, render_error_screen
 
 # ─────────────────────────── constants ───────────────────────────────────────
