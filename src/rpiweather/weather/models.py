@@ -39,6 +39,8 @@ class Current(BaseModel):
     humidity: int
     wind_speed: float
     wind_deg: int
+    uvi: float | None = None
+    visibility: int | None = None
     weather: List[WeatherCondition]
 
     # convert POSIX seconds → UTC datetime
@@ -51,6 +53,9 @@ class Current(BaseModel):
 class Hourly(BaseModel):
     dt: datetime
     temp: float
+    wind_speed: float | None = None
+    wind_deg: int | None = None
+    uvi: float | None = None
     weather: List[WeatherCondition]
 
     @field_validator("dt", mode="before")
@@ -73,6 +78,8 @@ class Daily(BaseModel):
     sunrise: datetime
     sunset: datetime
     temp: DailyTemp
+    uvi: float | None = None
+    moon_phase: float | None = None
     weather: List[WeatherCondition]
 
     @field_validator("dt", "sunrise", "sunset", mode="before")

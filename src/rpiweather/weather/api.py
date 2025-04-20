@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Final, Any, Dict
+import json
 
 import requests
+from .models import WeatherResponse
 
 from .errors import WeatherAPIError
 from .helpers import deg_to_cardinal, owm_icon_class, beaufort_from_speed, hourly_precip
@@ -24,7 +26,7 @@ HTTP_ERROR_MAP: Final = {
 }
 
 
-def fetch_weather(cfg: Dict[str, Any]) -> Dict[str, Any]:
+def fetch_weather(cfg: Dict[str, Any]) -> WeatherResponse:
     """Retrieve weather and air quality data."""
     # Get the main weather data
     params = {
@@ -50,17 +52,19 @@ def fetch_weather(cfg: Dict[str, Any]) -> Dict[str, Any]:
             msg = HTTP_ERROR_MAP.get(resp.status_code, resp.text)
         raise WeatherAPIError(resp.status_code, msg)
 
-    weather_data = resp.json()
+    weather_json = resp.text  # store text for single parse
 
-    # Add air quality data to the weather data
+    # Merge AQI data into the raw dict before validation
     try:
         air_quality = fetch_air_quality(cfg)
-        weather_data["air_quality"] = air_quality
+        merged_raw: Dict[str, Any] = json.loads(weather_json)
+        merged_raw["air_quality"] = air_quality
     except Exception:
-        # Don't let air quality failures break the whole display
-        weather_data["air_quality"] = {"aqi": "N/A"}
+        merged_raw: Dict[str, Any] = json.loads(weather_json)
+        merged_raw["air_quality"] = {"aqi": "N/A"}
 
-    return weather_data
+    # Validate and convert to Pydantic model
+    return WeatherResponse.model_validate(merged_raw)
 
 
 def fetch_air_quality(cfg: Dict[str, Any]) -> Dict[str, Any]:
@@ -98,51 +102,58 @@ def fetch_air_quality(cfg: Dict[str, Any]) -> Dict[str, Any]:
         return {"aqi": "N/A"}
 
 
-def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any]:
+def build_context(cfg: Dict[str, Any], weather: WeatherResponse) -> Dict[str, Any]:
     """Transform raw API JSON into template-friendly context."""
     now = datetime.now(timezone.utc).astimezone()
-    today = now.date()  # Get just the date part for comparison
+    today = now.date()
 
-    # Handle sunrise/sunset
-    sunrise_dt = datetime.fromtimestamp(weather["current"]["sunrise"], tz=timezone.utc).astimezone()
-    sunset_dt = datetime.fromtimestamp(weather["current"]["sunset"], tz=timezone.utc).astimezone()
+    # Sun timings (already UTC in model)
+    sunrise_dt = weather.current.sunrise.astimezone()
+    sunset_dt = weather.current.sunset.astimezone()
 
-    # Calculate daylight hours and minutes
-    daylight_seconds = weather["current"]["sunset"] - weather["current"]["sunrise"]
-    daylight_hours = int(daylight_seconds // 3600)
-    daylight_minutes = int((daylight_seconds % 3600) // 60)
+    daylight_seconds = int(
+        (weather.current.sunset - weather.current.sunrise).total_seconds()
+    )
+    daylight_hours, remainder = divmod(daylight_seconds, 3600)
+    daylight_minutes = remainder // 60
 
-    # Find UVI max and time for current day only
-    uvi_data: list[tuple[int, float]] = []
+    # ── UVI maxima ───────────────────────────────────────────────────────────
+    uvi_data: list[tuple[int, float]] = [
+        # include current observation first
+        (int(weather.current.dt.timestamp()), weather.current.uvi or 0.0)
+    ]
 
-    # First check current hour
-    current_uvi = weather["current"].get("uvi", 0)
-    current_time = weather["current"]["dt"]
-    uvi_data.append((current_time, current_uvi))
+    for hour in weather.hourly:
+        hour_local = hour.dt.astimezone()
+        if hour_local.date() == today:
+            uvi_data.append((int(hour.dt.timestamp()), hour.uvi or 0.0))
 
-    # Then add all remaining hourly forecasts for today
-    for hour in weather["hourly"]:
-        hour_dt = datetime.fromtimestamp(hour["dt"], tz=timezone.utc).astimezone()
-        if hour_dt.date() == today:  # Only include hours from today
-            uvi_data.append((hour["dt"], hour.get("uvi", 0)))
-
-    # Handle edge case if no data for today (late in day)
-    if not uvi_data:
-        # Just use the current UVI value
-        max_uvi_value = weather["current"].get("uvi", 0)
-        max_uvi_time = now
-    else:
-        # Find the maximum UVI value and its time
+    if uvi_data:
         max_uvi_entry = max(uvi_data, key=lambda x: x[1])
         max_uvi_value = max_uvi_entry[1]
-        max_uvi_time = datetime.fromtimestamp(max_uvi_entry[0], tz=timezone.utc).astimezone()
+        max_uvi_time = datetime.fromtimestamp(
+            max_uvi_entry[0], tz=timezone.utc
+        ).astimezone()
+    else:  # late in day, fallback
+        max_uvi_value = weather.current.uvi or 0.0
+        max_uvi_time = now
 
-    # Format with indication of past/future
+    time_fmt = "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
     is_future = max_uvi_time > now
-    time_format = "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
+
+    # ── Air‑quality & moon phase ─────────────────────────────────────────────
+    aqi = (weather.model_extra or {}).get("air_quality", {}).get("aqi", "N/A")
+    moon_phase = weather.daily[0].moon_phase if weather.daily else 0.0
+
+    # ── Wind helpers ─────────────────────────────────────────────────────────
+    speed = weather.current.wind_speed or 0.0
+    if cfg["units"] != "imperial":
+        speed *= 2.23694  # m/s → mph for Beaufort helper
+
+    arrow_deg = int(round((weather.current.wind_deg or 0) / 5) * 5) % 360
 
     return {
-        # Meta
+        # meta
         "date": now.strftime("%A, %B %d %Y"),
         "city": cfg["city"],
         "last_refresh": now.strftime(
@@ -151,9 +162,9 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
         "units_temp": "°F" if cfg["units"] == "imperial" else "°C",
         "units_wind": "mph" if cfg["units"] == "imperial" else "m/s",
         "units_precip": "in" if cfg["units"] == "imperial" else "mm",
-        # Current conditions
-        "current": weather["current"],
-        # Sun information
+        # current conditions
+        "current": weather.current,
+        # sun
         "sunrise": sunrise_dt.strftime(
             "%-I:%M %p" if not cfg.get("time_24h") else "%-H:%M"
         ),
@@ -161,25 +172,21 @@ def build_context(cfg: Dict[str, Any], weather: Dict[str, Any]) -> Dict[str, Any
             "%-I:%M %p" if not cfg.get("time_24h") else "%-H:%M"
         ),
         "daylight": f"{daylight_hours}h {daylight_minutes}m",
-        # UV information
+        # UV
         "uvi_max": f"{max_uvi_value:.1f}",
-        "uvi_time": max_uvi_time.strftime(time_format),
-        "uvi_occurred": not is_future,  # To indicate if it already happened
-        # Air quality
-        "aqi": weather["air_quality"]["aqi"],
-        # Moon phase
-        "moon_phase": weather["daily"][0]["moon_phase"],
-        # Beafort scale
-        "bft": beaufort_from_speed(
-            weather["current"]["wind_speed"]
-            * (1 if cfg["units"] == "imperial" else 2.23694)
-        ),
-        # Forecast slices
-        "hourly": weather["hourly"][: cfg.get("hourly_count", 8)],
-        "daily": weather["daily"][1 : 1 + cfg.get("daily_count", 5)],
-        # Helper filters (used directly in Jinja templates)
+        "uvi_time": max_uvi_time.strftime(time_fmt),
+        "uvi_occurred": not is_future,
+        # AQI & moon
+        "aqi": aqi,
+        "moon_phase": moon_phase,
+        # wind / Beaufort
+        "bft": beaufort_from_speed(speed),
+        # forecast slices
+        "hourly": weather.hourly[: cfg.get("hourly_count", 8)],
+        "daily": weather.daily[1 : 1 + cfg.get("daily_count", 5)],
+        # helper filters
         "deg_to_cardinal": deg_to_cardinal,
-        "arrow_deg": int(round(weather["current"]["wind_deg"] / 5) * 5) % 360,
+        "arrow_deg": arrow_deg,
         "owm_icon": owm_icon_class,
         "hourly_precip": hourly_precip,
     }
