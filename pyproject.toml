@@ -3,9 +3,20 @@ name = "raspberry-pi-weather-display"
 version = "0.1.0"
 description = "E-Ink weather dashboard for Raspberry Pi Zero 2 W"
 authors = ["Steve Nims <sjnims@gmail.com>"]
+license = "MIT"
+keywords = ["raspberry-pi", "e-ink", "weather", "dashboard", "iot"]
 readme = "README.md"
+homepage = "https://github.com/sjnims/raspberry-pi-weather-display"
+repository = "https://github.com/sjnims/raspberry-pi-weather-display"
+documentation = "https://github.com/sjnims/raspberry-pi-weather-display#readme"
 packages = [
     { include = "rpiweather", from = "src" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
 ]
 
 include = [
