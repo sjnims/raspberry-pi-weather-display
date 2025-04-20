@@ -17,6 +17,21 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 * Full OpenWeather One Call 3.0 ingestion
 * Jinja2 HTML → PNG via `wkhtmltoimage`, GC16 greyscale display.
 * **Error visualization** – API failures display a clear error message on the e-ink screen, showing error details, time of last attempt, and battery status.
+* **Typed API model** – `fetch_weather()` now returns a
+  [`WeatherResponse`](./src/rpiweather/weather/models.py) Pydantic v2 model
+  instead of a raw dict, so downstream code (and the Jinja template) can use
+  **dot‑access** with full type checking and validation.
+
+  ```python
+  from pathlib import Path
+  from rpiweather.weather.models import WeatherResponse
+
+  wx = WeatherResponse.model_validate_json(
+      Path("tests/data/onecall_sample.json").read_text()
+  )
+  print(wx.current.temp)          # -> 72.1
+  print(wx.hourly[0].dt.isoformat())
+  ```
 
 A Typer‑based CLI (`weather`) replaces the old `python main.py` entry‑point: run `weather --help` for commands.
 
