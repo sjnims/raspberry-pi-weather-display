@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from display.epaper import display_png
+from rpiweather.display.epaper import display_png
 
 
 def render_error_screen(
@@ -12,7 +12,7 @@ def render_error_screen(
     soc: int,
     is_charging: bool,
     html_to_png_func: Callable[[str, Path], None],
-    out_path: Path
+    out_path: Path,
 ) -> None:
     """
     Create and display an error screen when API calls fail.
