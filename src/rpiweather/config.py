@@ -35,6 +35,12 @@ class WeatherConfig(BaseModel):
     time_24h: bool = Field(False, description="Use 24-hour clock on template")
     quiet_hours: QuietHours | None = None
 
+    stay_awake_url: str | None = Field(
+        None,
+        description="Override URL that returns {'awake': true|false}; "
+        "if null, CLI option or default is used",
+    )
+
     # ---- derived / validation helpers ----
 
     @field_validator("quiet_hours")
