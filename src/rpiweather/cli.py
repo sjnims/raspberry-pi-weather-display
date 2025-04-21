@@ -34,6 +34,8 @@ app.add_typer(config_app, name="config")
 
 logger: logging.Logger = logging.getLogger("rpiweather")
 
+DEFAULT_STAY_AWAKE_URL = "http://localhost:8000/stay_awake.json"
+
 
 # ───────────────────────── PiJuice protocol ─────────────────────────────────
 class PiJuiceLike(Protocol):
@@ -140,9 +142,10 @@ def run(
     preview: bool = typer.Option(False, "--preview", "-p"),
     once: bool = typer.Option(False, "--once", "-1", help="Run one cycle then exit"),
     debug: bool = typer.Option(False, "--debug"),
-    stay_awake_url: str = typer.Option(
-        "http://localhost:8000/stay_awake.json",
-        help="URL that returns {'awake': true|false} to override quiet hours",
+    stay_awake_url: Optional[str] = typer.Option(
+        None,
+        help="Override URL that returns {'awake': true|false}. "
+        "If omitted, value from config.yaml or the default URL is used.",
     ),
 ) -> None:
     logging.basicConfig(
@@ -152,6 +155,10 @@ def run(
 
     cfg_obj: WeatherConfig = load_config(config)
     cfg: WeatherCfg = cast(WeatherCfg, cfg_obj.model_dump())  # typed dict
+
+    # precedence: CLI flag ▸ YAML ▸ default
+    effective_url = stay_awake_url or cfg_obj.stay_awake_url or DEFAULT_STAY_AWAKE_URL
+
     base_minutes = cfg.get("refresh_minutes", 120)
 
     pijuice = get_pijuice()
@@ -163,7 +170,7 @@ def run(
     while True:
         now = datetime.now()
         # remote override
-        if should_stay_awake(stay_awake_url):
+        if should_stay_awake(effective_url):
             logger.debug("Stay-awake flag true - overriding quiet hours")
             in_quiet = False
         else:
