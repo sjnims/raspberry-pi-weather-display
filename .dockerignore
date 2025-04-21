@@ -1,0 +1,12 @@
+# ───────────────────────── .dockerignore ─────────────────────
+# keep context small
+.git
+__pycache__
+.venv
+.idea
+.vscode
+*.py[cod]
+*.egg-info
+dist
+build
+# fixture JSONs are small; include them

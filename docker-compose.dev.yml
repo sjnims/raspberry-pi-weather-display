@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  dev:
+    image: rpiweather-dev
+    build: .
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./templates:/app/templates
+      - ./static:/app/static
+    working_dir: /app
+    command: /bin/bash -c "source /app/.venv/bin/activate && exec bash"
