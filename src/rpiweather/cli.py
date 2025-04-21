@@ -5,7 +5,7 @@ import logging
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional, Protocol, TypedDict, cast
 
@@ -24,6 +24,7 @@ from rpiweather.display.render import (
     html_to_png,
 )
 from rpiweather.weather.api import WeatherAPIError, build_context, fetch_weather
+from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
 app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)
@@ -155,6 +156,17 @@ def run(
     last_full_refresh = datetime.now()
 
     while True:
+        now = datetime.now()
+        if in_quiet_hours(now, cfg_obj.quiet_hours):
+            secs = seconds_until_quiet_end(now, cfg_obj.quiet_hours)
+            logger.info(
+                "Quiet hours active → sleeping %d min until %s",
+                secs // 60,
+                (now + timedelta(seconds=secs)).strftime("%H:%M"),
+            )
+            time.sleep(secs)
+            continue
+
         full_refresh = datetime.now() - last_full_refresh > FULL_REFRESH_INTERVAL
         soc = get_soc(pijuice)
         is_charging: bool = False
