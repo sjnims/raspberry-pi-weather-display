@@ -25,6 +25,7 @@ from rpiweather.display.render import (
 )
 from rpiweather.weather.api import WeatherAPIError, build_context, fetch_weather
 from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
+from rpiweather.remote import should_stay_awake
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
 app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)
@@ -139,6 +140,10 @@ def run(
     preview: bool = typer.Option(False, "--preview", "-p"),
     once: bool = typer.Option(False, "--once", "-1", help="Run one cycle then exit"),
     debug: bool = typer.Option(False, "--debug"),
+    stay_awake_url: str = typer.Option(
+        "http://localhost:8000/stay_awake.json",
+        help="URL that returns {'awake': true|false} to override quiet hours",
+    ),
 ) -> None:
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.INFO,
@@ -157,7 +162,14 @@ def run(
 
     while True:
         now = datetime.now()
-        if in_quiet_hours(now, cfg_obj.quiet_hours):
+        # remote override
+        if should_stay_awake(stay_awake_url):
+            logger.debug("Stay-awake flag true - overriding quiet hours")
+            in_quiet = False
+        else:
+            in_quiet = in_quiet_hours(now, cfg_obj.quiet_hours)
+
+        if in_quiet:
             secs = seconds_until_quiet_end(now, cfg_obj.quiet_hours)
             logger.info(
                 "Quiet hours active → sleeping %d min until %s",
