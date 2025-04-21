@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-# ── standard library ──────────────────────────────────────────────────────────
-
+# ── standard library ─────────────────────────────────────────────────────────
 import logging
 import sys
 import tempfile
@@ -10,13 +9,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Protocol, TypedDict, cast
 
-# ── third‑party ───────────────────────────────────────────────────────────────
-
-import yaml
+# ── third‑party ──────────────────────────────────────────────────────────────
 import typer
+import yaml
+from pydantic import ValidationError
 
-# ── rpiweather packages ───────────────────────────────────────────────────────
-
+# ── rpiweather packages ──────────────────────────────────────────────────────
+from rpiweather.config import WeatherConfig, load_config
 from rpiweather.display.epaper import display_png
 from rpiweather.display.error_ui import render_error_screen
 from rpiweather.display.render import (
@@ -27,19 +26,21 @@ from rpiweather.display.render import (
 from rpiweather.weather.api import WeatherAPIError, build_context, fetch_weather
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
+app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)
+config_app = typer.Typer(help="Config helpers")
+app.add_typer(config_app, name="config")
 
-app = typer.Typer(add_completion=False)
 logger: logging.Logger = logging.getLogger("rpiweather")
 
 
+# ───────────────────────── PiJuice protocol ─────────────────────────────────
 class PiJuiceLike(Protocol):
-    """Subset of the PiJuice public API used by this program."""
-
     def GetChargeLevel(self) -> Dict[str, int]: ...
     def GetTime(self) -> Dict[str, Dict[str, int]]: ...
     def SetTime(self, time_dict: Dict[str, int]) -> Dict[str, int]: ...
 
 
+# legacy TypedDict kept for helper signatures
 class WeatherCfg(TypedDict):
     api_key: str
     latitude: float
@@ -48,16 +49,8 @@ class WeatherCfg(TypedDict):
     refresh_minutes: int
 
 
-# ─────────────────────────── helpers ─────────────────────────────────────────
-
-
-def load_config(path: Path) -> WeatherCfg:
-    with path.open() as f:
-        return yaml.safe_load(f)
-
-
+# ───────────────────────── helper functions ─────────────────────────────────
 def get_pijuice() -> Optional[PiJuiceLike]:
-    """Return a PiJuice instance if the library is importable, else None."""
     try:
         import pijuice  # type: ignore[import-not-found]
 
@@ -76,7 +69,6 @@ def get_soc(pijuice: Optional[PiJuiceLike]) -> int:
 
 
 def ensure_rtc_synced(pijuice: Optional[PiJuiceLike]) -> None:
-    """Set PiJuice RTC once per boot if it's uninitialised."""
     if pijuice is None:
         return
     try:
@@ -89,37 +81,20 @@ def ensure_rtc_synced(pijuice: Optional[PiJuiceLike]) -> None:
 
 
 def calculate_sleep_minutes(base_minutes: int, soc: int) -> int:
-    """
-    Calculate sleep duration with progressive slowdown based on battery level.
-
-    Parameters
-    ----------
-    base_minutes : int
-        The base refresh interval from config.
-    soc : int
-        Battery State of Charge percentage (0-100).
-
-    Returns
-    -------
-    int: Sleep duration in minutes, progressively longer as battery depletes.
-    """
     if soc <= 5:
-        multiplier = 4.0  # Critical battery: 4x longer refresh
+        multiplier = 4.0
     elif soc <= 15:
-        multiplier = 3.0  # Very low battery: 3x longer refresh
+        multiplier = 3.0
     elif soc <= 25:
-        multiplier = 2.0  # Low battery: 2x longer refresh
+        multiplier = 2.0
     elif soc <= 50:
-        multiplier = 1.5  # Medium battery: 1.5x longer refresh
+        multiplier = 1.5
     else:
-        multiplier = 1.0  # High battery: normal refresh
-
+        multiplier = 1.0
     return int(base_minutes * multiplier)
 
 
-# ─────────────────────────── main cycle ───────────────────────────────────────
-
-
+# ───────────────────────── dashboard cycle ──────────────────────────────────
 def cycle(
     cfg: WeatherCfg,
     preview: bool,
@@ -127,13 +102,11 @@ def cycle(
     soc: int,
     is_charging: bool,
 ) -> bool:
-    """Render one dashboard update. Return False on API error (for circuit breaker)."""
     try:
         weather = fetch_weather(cfg)  # type: ignore[arg-type]
     except WeatherAPIError as err:
         logger.error("OpenWeather error (%s): %s", err.code, err.message)
-
-        if not preview:  # Only show error on actual device, not in preview mode
+        if not preview:
             with tempfile.TemporaryDirectory() as td:
                 error_png = Path(td) / "error.png"
                 render_error_screen(
@@ -150,20 +123,15 @@ def cycle(
     ctx["is_charging"] = is_charging
 
     html = TEMPLATE.render(**ctx)  # type: ignore
-
     with tempfile.TemporaryDirectory() as td:
         png = Path(td) / "dash.png"
         html_to_png(html, png, preview=preview)
-
-        if not preview:  # Pi / production path
-            # mode 0 = full white‑black‑white, mode 2 = GC16 partial
+        if not preview:
             display_png(png, mode_override=0 if full_refresh else 2)
     return True
 
 
-# ─────────────────────────── entrypoint ───────────────────────────────────────
-
-
+# ───────────────────────── main command ─────────────────────────────────────
 @app.command()
 def run(
     config: Path = typer.Option(..., "--config", "-c", exists=True, dir_okay=False),
@@ -176,7 +144,8 @@ def run(
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
 
-    cfg: WeatherCfg = load_config(config)  # type: ignore[assignment]
+    cfg_obj: WeatherConfig = load_config(config)
+    cfg: WeatherCfg = cast(WeatherCfg, cfg_obj.model_dump())  # typed dict
     base_minutes = cfg.get("refresh_minutes", 120)
 
     pijuice = get_pijuice()
@@ -192,16 +161,11 @@ def run(
         if pijuice:
             try:
                 stat = pijuice.status.GetStatus()["data"]  # type: ignore[attr-defined]
-                is_charging = stat.get("powerInput") == "GOOD"  # type: ignore[attr-defined]
+                is_charging = cast(bool, stat.get("powerInput") == "GOOD")  # type: ignore[attr-defined]
             except Exception:
                 pass
-        ok = cycle(
-            cfg,
-            preview=preview,
-            full_refresh=full_refresh,
-            soc=soc,
-            is_charging=is_charging,  # type: ignore[arg-type]
-        )
+
+        ok = cycle(cfg, preview, full_refresh, soc, is_charging)
         if ok:
             error_streak = 0
             if full_refresh:
@@ -226,6 +190,47 @@ def run(
         time.sleep(sleep_min * 60)
 
 
+# ───────────────────────── config sub‑commands ───────────────────────────────
+@config_app.command("validate")
+def validate_config(file: Path):
+    """Validate a YAML config file against the schema."""
+    try:
+        load_config(file)
+        typer.echo("✅ Config valid")
+    except RuntimeError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+
+@config_app.command("wizard")
+def wizard(dst: Path = typer.Argument(..., help="Output config.yaml")):
+    """Interactive prompt to create a config file."""
+    typer.echo("Interactive config builder - press Enter for defaults.")
+
+    while True:
+        data: Dict[str, Any] = {
+            "lat": float(typer.prompt("Latitude")),
+            "lon": float(typer.prompt("Longitude")),
+            "city": typer.prompt("City name"),
+            "api_key": typer.prompt("OpenWeather API key", hide_input=True),
+            "units": typer.prompt("Units [imperial|metric]", default="imperial"),
+        }
+        try:
+            cfg = WeatherConfig(**data)
+            break  # valid → exit loop
+        except ValidationError as err:
+            typer.secho("\nConfig error(s):", fg=typer.colors.RED, err=True)
+            for e in err.errors():
+                typer.secho(
+                    f"  • {e['loc'][0]} - {e['msg']}", fg=typer.colors.RED, err=True
+                )
+            typer.echo("Please re-enter the values.\n")
+
+    dst.write_text(yaml.safe_dump(cfg.model_dump(), sort_keys=False), encoding="utf-8")
+    typer.secho(f"Config written to {dst}", fg=typer.colors.GREEN)
+
+
+# ───────────────────────── module entrypoint ────────────────────────────────
 if __name__ == "__main__":
     try:
         app()
