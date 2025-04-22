@@ -26,6 +26,7 @@ from rpiweather.display.render import (
 from rpiweather.weather.api import WeatherAPIError, build_context, fetch_weather
 from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
 from rpiweather.remote import should_stay_awake
+from rpiweather.power import graceful_shutdown, schedule_wakeup
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
 app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)
@@ -35,6 +36,7 @@ app.add_typer(config_app, name="config")
 logger: logging.Logger = logging.getLogger("rpiweather")
 
 DEFAULT_STAY_AWAKE_URL = "http://localhost:8000/stay_awake.json"
+MIN_SHUTDOWN_SLEEP_MIN = 20  # don’t power‑off for very short sleeps
 
 
 # ───────────────────────── PiJuice protocol ─────────────────────────────────
@@ -212,6 +214,22 @@ def run(
             break
 
         sleep_min = calculate_sleep_minutes(base_minutes, soc)
+        # decide whether to power off instead of sleep
+        should_poweroff = soc <= cfg_obj.poweroff_soc or (
+            in_quiet and sleep_min >= MIN_SHUTDOWN_SLEEP_MIN
+        )
+        if should_poweroff:
+            wake_dt = datetime.now() + timedelta(minutes=sleep_min)
+            schedule_wakeup(wake_dt)
+            logger.info(
+                "Powering off for %d min (SOC %d%%) → wake at %s",
+                sleep_min,
+                soc,
+                wake_dt.strftime("%H:%M"),
+            )
+            graceful_shutdown()
+            break
+
         logger.info(
             "Battery %02d%% → sleeping %d min (%.1fx normal)",
             soc,
