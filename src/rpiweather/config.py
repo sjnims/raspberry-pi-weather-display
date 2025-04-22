@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 
 class QuietHours(BaseModel):
-    """Time window (24-hour) during which refreshes are skipped."""
+    """Time window (24-hour) during which refreshes are skipped.
+
+    Hours are integers from 0 to 23 inclusive.
+    """
 
     start: int = Field(
         ..., ge=0, le=23, description="Hour of day to begin sleeping (0-23)"
@@ -31,6 +34,13 @@ class WeatherConfig(BaseModel):
     )
     daily_count: int = Field(
         5, ge=1, le=7, description="Days to show in forecast slice"
+    )
+    poweroff_soc: int = Field(
+        8,
+        ge=0,
+        le=100,
+        description="Battery % threshold below which the Pi shuts down "
+        "instead of sleeping",
     )
     time_24h: bool = Field(False, description="Use 24-hour clock on template")
     quiet_hours: QuietHours | None = None
