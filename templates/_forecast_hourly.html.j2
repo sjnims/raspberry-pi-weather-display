@@ -8,7 +8,7 @@
   {# ─── header: local time of each hour ─── #}
   <tr>
     {% for h in hourly %}
-      <th>{{ h.dt | strftime(time_fmt) }}</th>
+      <th>{{ h.dt.astimezone() | strftime(time_fmt) }}</th>
     {% endfor %}
   </tr>
 
@@ -32,7 +32,7 @@
       <td>
         {{ h.wind_speed | round(0) }} {{ units_wind }}<br>
         <i class="wi wi-wind-optimized tiny"
-           style="transform: rotate({{ h.wind_deg }}deg);"></i>
+           style="transform: rotate({{ h.wind_deg + 180 }}deg);"></i>
       </td>
     {% endfor %}
   </tr>

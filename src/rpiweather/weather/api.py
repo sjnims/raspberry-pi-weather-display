@@ -203,8 +203,8 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
         # wind / Beaufort
         "bft": beaufort_from_speed(speed),
         # forecast slices
-        # --- Hourly list: next N hours in *local* time -------------------------
-        "hourly": [h for h in weather.hourly if h.dt >= now.astimezone(timezone.utc)][
+        # --- Hourly list: next N hours starting *after now* in local time -----
+        "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][
             : cfg.get("hourly_count", 8)
         ],
         "daily": weather.daily[1 : 1 + cfg.get("daily_count", 5)],
