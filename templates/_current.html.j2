@@ -1,0 +1,68 @@
+{% macro battery_icon(soc, charging) -%}
+  {% if charging %}
+    /static/icons/battery_charging.svg
+  {% elif soc > 75 %}
+    /static/icons/battery_full.svg
+  {% elif soc > 50 %}
+    /static/icons/battery_75.svg
+  {% elif soc > 25 %}
+    /static/icons/battery_50.svg
+  {% elif soc > 10 %}
+    /static/icons/battery_25.svg
+  {% else %}
+    /static/icons/battery_empty.svg
+  {% endif %}
+{%- endmacro %}
+
+<header class="topbar">
+  <span>{{ date }} — {{ city }}</span>
+
+  <span class="right">
+    <img
+      src="{{ battery_icon(battery_soc, is_charging) }}"
+      class="battery-icon {% if is_charging %}charging{% endif %}"
+      alt="Battery: {{ battery_soc }}%"
+    >
+    {{ battery_soc }}%
+  </span>
+</header>
+
+<section class="current">
+  <i class="wi {{ current.weather[0] | owm_icon }} icon-lg"></i>
+  <div class="temps">
+    <div class="temp-now">{{ current.temp | round | int }}{{ units_temp }}</div>
+    <div class="feels-like">
+      Feels like {{ current.feels_like | round | int }}{{ units_temp }}
+    </div>
+    <div class="wind">
+      {{ current.wind_speed | round }} {{ units_wind }}
+    </div>
+    {% set current_precip = hourly_precip(current) %}
+    {% if current_precip %}
+    <div class="precip">
+      {{ current_precip }} {{ units_precip }}
+    </div>
+    {% endif %}
+    <div class="extras">
+      <i class="wi {{ moon_phase | moon_phase_icon }}"></i>
+      <i class="wi wi-wind-beaufort-{{ bft }}"></i>
+      <i class="wi wi-wind-optimized"
+         style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);"></i>
+    </div>
+  </div>
+
+  <div class="sun">
+    <div>Sunrise {{ sunrise }}</div>
+    <div>Sunset {{ sunset }}</div>
+    <div>Daylight {{ daylight }}</div>
+    <div>
+      {% if uvi_occurred %}
+        Max UV: {{ uvi_max }} (was at {{ uvi_time }})
+      {% else %}
+        Max UV: {{ uvi_max }} (at {{ uvi_time }})
+      {% endif %}
+    </div>
+    <div>AQI: <span class="aqi-{{ aqi_value | default(0) }}">{{ aqi }}</span></div>
+    <div class="tiny"><i class="wi wi-refresh"></i> {{ last_refresh }}</div>
+  </div>
+</section>

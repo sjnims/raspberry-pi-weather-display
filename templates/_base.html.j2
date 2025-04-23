@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Weather{% endblock %}</title>
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="stylesheet" href="/static/css/weather-icons.css" />
+    <link rel="stylesheet" href="/static/css/weather-icons-wind.css" />
+    <link rel="stylesheet" href="/static/css/weather-icons-wind-override.css" />
+
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    {% block body %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

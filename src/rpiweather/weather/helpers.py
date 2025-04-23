@@ -1,5 +1,24 @@
 from __future__ import annotations
-from typing import Dict, Any
+
+from typing import Any, Mapping
+from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class _WeatherObj(Protocol):
+    """Duck-type for a Pydantic WeatherCondition model (id & icon)."""
+
+    id: int | str
+    icon: str
+
+
+@runtime_checkable
+class _PrecipObj(Protocol):
+    """Duck-type for Hourly/Current models that expose optional rain/snow dicts."""
+
+    rain: Mapping[str, Any] | None
+    snow: Mapping[str, Any] | None
+
 
 _DIRECTIONS = [
     "N",
@@ -35,17 +54,52 @@ def beaufort_from_speed(speed_mph: float) -> int:
     return 12
 
 
-def owm_icon_class(weather_item: Dict[str, Any]) -> str:
-    """Map an OpenWeather `weather` element to Weather-Icons CSS class."""
-    wid = weather_item["id"]
-    variant = "night" if weather_item["icon"].endswith("n") else "day"
-    return f"wi-owm-{variant}-{wid}"
+def owm_icon_class(weather_item: Mapping[str, Any] | _WeatherObj) -> str:  # noqa: D401
+    """Return the Weather Icons CSS class for an OpenWeather *weather* entry.
+
+    The helper accepts either a raw ``Mapping`` from the JSON API **or** the
+    typed ``WeatherCondition`` model that we surface elsewhere.  A small
+    ``Protocol`` (``_WeatherObj``) lets *pyright --strict* understand the
+    attribute access without resorting to ``Any``.
+    """
+
+    if isinstance(weather_item, Mapping):
+        wid_str: str = str(weather_item["id"])
+        icon_str: str = str(weather_item["icon"])
+    else:  # _WeatherObj path – protected by runtime_checkable
+        wid_str = str(weather_item.id)
+        icon_str = str(weather_item.icon)
+
+    variant: str = "night" if icon_str.endswith("n") else "day"
+    return f"wi-owm-{variant}-{wid_str}"
 
 
-def hourly_precip(hour: Dict[str, Any]) -> str:
-    """Return precipitation amount as string, or empty string if none."""
-    amount = hour.get("rain", {}).get("1h", 0) or hour.get("snow", {}).get("1h", 0)
-    return str(round(amount, 2)) if amount > 0 else ""
+def _one_hour_amt(mapping: Mapping[str, Any] | None) -> float:
+    """Return the 1-hour precip amount from an OpenWeather sub‑dict."""
+    if mapping is None:
+        return 0.0
+    try:
+        return float(mapping.get("1h", 0) or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def hourly_precip(hour: Mapping[str, Any] | _PrecipObj) -> str:  # noqa: D401
+    """
+    Extract the 1-hour precipitation amount (rain or snow) from an *hourly*
+    or *current* entry.  Accepts either the raw ``Mapping`` from the JSON
+    response *or* a typed Pydantic model instance.
+    """
+
+    if isinstance(hour, Mapping):
+        rain_amt = _one_hour_amt(hour.get("rain"))  # type: ignore[arg-type]
+        snow_amt = _one_hour_amt(hour.get("snow"))  # type: ignore[arg-type]
+    else:  # _PrecipObj path – protected by runtime_checkable
+        rain_amt = _one_hour_amt(getattr(hour, "rain", None))  # type: ignore[arg-type]
+        snow_amt = _one_hour_amt(getattr(hour, "snow", None))  # type: ignore[arg-type]
+
+    amount = rain_amt or snow_amt
+    return f"{amount:.2f}" if amount > 0 else ""
 
 
 def moon_phase_icon(phase: float) -> str:

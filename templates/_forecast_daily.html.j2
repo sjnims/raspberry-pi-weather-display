@@ -1,0 +1,39 @@
+{# ---------------------------------------------------------------------------
+   Multi-day forecast strip
+   Context vars expected: daily, units_temp,
+                         owm_icon (helper), moon_phase_icon (helper)
+   --------------------------------------------------------------------------- #}
+
+<table class="daily">
+  {# ─── header: weekday short name ─── #}
+  <tr>
+    {% for d in daily %}
+      <th>{{ d.dt | strftime("%a") }}</th>
+    {% endfor %}
+  </tr>
+
+  {# ─── weather icon ─── #}
+  <tr>
+    {% for d in daily %}
+      <td><i class="wi {{ owm_icon(d.weather[0]) }}"></i></td>
+    {% endfor %}
+  </tr>
+
+  {# ─── min / max temps ─── #}
+  <tr>
+    {% for d in daily %}
+      <td>
+        {{ d.temp.min | round | int }}{{ units_temp }}
+        /
+        {{ d.temp.max | round | int }}{{ units_temp }}
+      </td>
+    {% endfor %}
+  </tr>
+
+  {# ─── moon-phase icon ─── #}
+  <tr>
+    {% for d in daily %}
+      <td><i class="wi {{ moon_phase_icon(d.moon_phase) }}"></i></td>
+    {% endfor %}
+  </tr>
+</table>
