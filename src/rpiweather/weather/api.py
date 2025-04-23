@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Final, Any, Dict
+from typing import Final, Any, Dict, TypedDict, Callable, cast
+from functools import partial
 import json
 
 import requests
 from .models import WeatherResponse
 
 from .errors import WeatherAPIError
-from .helpers import deg_to_cardinal, owm_icon_class, beaufort_from_speed, hourly_precip
+from .helpers import (
+    deg_to_cardinal,
+    owm_icon_class,
+    beaufort_from_speed,
+    hourly_precip,
+    moon_phase_icon,
+)
 
 API_URL: Final = "https://api.openweathermap.org/data/3.0/onecall"
 
@@ -26,7 +33,22 @@ HTTP_ERROR_MAP: Final = {
 }
 
 
-def fetch_weather(cfg: Dict[str, Any]) -> WeatherResponse:
+class WeatherCfgDict(TypedDict):
+    """Loose config mapping used until full Pydantic adoption (phase 6.1)."""
+
+    lat: float
+    lon: float
+    api_key: str
+    units: str
+    city: str
+    refresh_minutes: int
+    hourly_count: int
+    daily_count: int
+    time_24h: bool
+    poweroff_soc: int
+
+
+def fetch_weather(cfg: WeatherCfgDict) -> WeatherResponse:
     """Retrieve weather and air quality data."""
     # Get the main weather data
     params = {
@@ -67,7 +89,7 @@ def fetch_weather(cfg: Dict[str, Any]) -> WeatherResponse:
     return WeatherResponse.model_validate(merged_raw)
 
 
-def fetch_air_quality(cfg: Dict[str, Any]) -> Dict[str, Any]:
+def fetch_air_quality(cfg: WeatherCfgDict) -> Dict[str, Any]:
     """Retrieve air quality data from OpenWeather API."""
     AQI_URL = "https://api.openweathermap.org/data/2.5/air_pollution"
 
@@ -102,7 +124,7 @@ def fetch_air_quality(cfg: Dict[str, Any]) -> Dict[str, Any]:
         return {"aqi": "N/A"}
 
 
-def build_context(cfg: Dict[str, Any], weather: WeatherResponse) -> Dict[str, Any]:
+def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, Any]:
     """Transform raw API JSON into template-friendly context."""
     now = datetime.now(timezone.utc).astimezone()
     today = now.date()
@@ -138,7 +160,9 @@ def build_context(cfg: Dict[str, Any], weather: WeatherResponse) -> Dict[str, An
         max_uvi_value = weather.current.uvi or 0.0
         max_uvi_time = now
 
-    time_fmt = "%-I %p" if not cfg.get("time_24h") else "%-H:%M"
+    # cache once to avoid repeated dict look‑ups
+    use_24h: bool = cfg.get("time_24h", False)
+    time_fmt = "%-I %p" if not use_24h else "%-H:%M"
     is_future = max_uvi_time > now
 
     # ── Air‑quality & moon phase ─────────────────────────────────────────────
@@ -150,27 +174,24 @@ def build_context(cfg: Dict[str, Any], weather: WeatherResponse) -> Dict[str, An
     if cfg["units"] != "imperial":
         speed *= 2.23694  # m/s → mph for Beaufort helper
 
-    arrow_deg = int(round((weather.current.wind_deg or 0) / 5) * 5) % 360
+    # Round wind direction to the nearest 10° for smoother icon rotation
+    arrow_deg_raw: float = float(weather.current.wind_deg or 0)
+    arrow_deg = int((round(arrow_deg_raw / 10) * 10) % 360)
 
     return {
         # meta
         "date": now.strftime("%A, %B %d %Y"),
         "city": cfg["city"],
-        "last_refresh": now.strftime(
-            "%-I:%M %p %Z" if not cfg.get("time_24h") else "%-H:%M %Z"
-        ),
+        "last_refresh": now.strftime("%-I:%M %p %Z" if not use_24h else "%-H:%M %Z"),
         "units_temp": "°F" if cfg["units"] == "imperial" else "°C",
         "units_wind": "mph" if cfg["units"] == "imperial" else "m/s",
         "units_precip": "in" if cfg["units"] == "imperial" else "mm",
+        "time_fmt": time_fmt,
         # current conditions
         "current": weather.current,
         # sun
-        "sunrise": sunrise_dt.strftime(
-            "%-I:%M %p" if not cfg.get("time_24h") else "%-H:%M"
-        ),
-        "sunset": sunset_dt.strftime(
-            "%-I:%M %p" if not cfg.get("time_24h") else "%-H:%M"
-        ),
+        "sunrise": sunrise_dt.strftime("%-I:%M %p" if not use_24h else "%-H:%M"),
+        "sunset": sunset_dt.strftime("%-I:%M %p" if not use_24h else "%-H:%M"),
         "daylight": f"{daylight_hours}h {daylight_minutes}m",
         # UV
         "uvi_max": f"{max_uvi_value:.1f}",
@@ -182,11 +203,19 @@ def build_context(cfg: Dict[str, Any], weather: WeatherResponse) -> Dict[str, An
         # wind / Beaufort
         "bft": beaufort_from_speed(speed),
         # forecast slices
-        "hourly": weather.hourly[: cfg.get("hourly_count", 8)],
+        # --- Hourly list: next N hours in *local* time -------------------------
+        "hourly": [h for h in weather.hourly if h.dt >= now.astimezone(timezone.utc)][
+            : cfg.get("hourly_count", 8)
+        ],
         "daily": weather.daily[1 : 1 + cfg.get("daily_count", 5)],
         # helper filters
         "deg_to_cardinal": deg_to_cardinal,
         "arrow_deg": arrow_deg,
         "owm_icon": owm_icon_class,
-        "hourly_precip": hourly_precip,
+        # bind metric/imperial choice once so templates stay simple
+        "hourly_precip": cast(
+            Callable[[Any], str],
+            partial(hourly_precip, imperial=(cfg["units"] == "imperial")),
+        ),
+        "moon_phase_icon": moon_phase_icon,
     }

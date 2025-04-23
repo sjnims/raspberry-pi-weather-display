@@ -23,7 +23,12 @@ from rpiweather.display.render import (
     TEMPLATE,
     html_to_png,
 )
-from rpiweather.weather.api import WeatherAPIError, build_context, fetch_weather
+from rpiweather.weather.api import (
+    WeatherAPIError,
+    build_context,
+    fetch_weather,
+    WeatherCfgDict,
+)
 from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
 from rpiweather.remote import should_stay_awake
 from rpiweather.power import graceful_shutdown, schedule_wakeup
@@ -124,7 +129,7 @@ def cycle(
                 )
         return False
 
-    ctx: Dict[str, Any] = build_context(cast(Dict[str, Any], cfg), weather)
+    ctx: Dict[str, Any] = build_context(cast(WeatherCfgDict, cfg), weather)
     ctx["battery_soc"] = soc
     ctx["is_charging"] = is_charging
 

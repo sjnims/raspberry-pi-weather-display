@@ -1,28 +1,26 @@
 {% macro battery_icon(soc, charging) -%}
-  {% if charging %}
-    /static/icons/battery_charging.svg
-  {% elif soc > 75 %}
-    /static/icons/battery_full.svg
-  {% elif soc > 50 %}
-    /static/icons/battery_75.svg
-  {% elif soc > 25 %}
-    /static/icons/battery_50.svg
-  {% elif soc > 10 %}
-    /static/icons/battery_25.svg
-  {% else %}
-    /static/icons/battery_empty.svg
-  {% endif %}
+{% if charging -%}
+static/icons/battery_charging.svg
+{%- elif soc > 75 -%}
+static/icons/battery_full.svg
+{%- elif soc > 50 -%}
+static/icons/battery_75.svg
+{%- elif soc > 25 -%}
+static/icons/battery_50.svg
+{%- elif soc > 10 -%}
+static/icons/battery_25.svg
+{%- else -%}
+static/icons/battery_empty.svg
+{%- endif %}
 {%- endmacro %}
 
 <header class="topbar">
   <span>{{ date }} — {{ city }}</span>
 
   <span class="right">
-    <img
-      src="{{ battery_icon(battery_soc, is_charging) }}"
-      class="battery-icon {% if is_charging %}charging{% endif %}"
-      alt="Battery: {{ battery_soc }}%"
-    >
+    <img src="{{ battery_icon(battery_soc, is_charging) }}"
+         class="battery-icon {% if is_charging %}charging{% endif %}"
+         alt="Battery: {{ battery_soc }}%">
     {{ battery_soc }}%
   </span>
 </header>

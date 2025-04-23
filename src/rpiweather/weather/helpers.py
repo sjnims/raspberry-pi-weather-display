@@ -20,6 +20,18 @@ class _PrecipObj(Protocol):
     snow: Mapping[str, Any] | None
 
 
+#
+# ── unit‑conversion helpers ──────────────────────────────────────────────
+def mm_to_inches(mm: float) -> float:
+    """Convert millimetres to inches (2 dp)."""
+    return round(mm / 25.4, 2)
+
+
+def hpa_to_inhg(hpa: float) -> float:
+    """Convert pressure hPa → inches Hg (2 dp)."""
+    return round(hpa * 0.02953, 2)
+
+
 _DIRECTIONS = [
     "N",
     "NNE",
@@ -84,7 +96,10 @@ def _one_hour_amt(mapping: Mapping[str, Any] | None) -> float:
         return 0.0
 
 
-def hourly_precip(hour: Mapping[str, Any] | _PrecipObj) -> str:  # noqa: D401
+def hourly_precip(
+    hour: Mapping[str, Any] | _PrecipObj,
+    imperial: bool = False,
+) -> str:  # noqa: D401
     """
     Extract the 1-hour precipitation amount (rain or snow) from an *hourly*
     or *current* entry.  Accepts either the raw ``Mapping`` from the JSON
@@ -99,7 +114,11 @@ def hourly_precip(hour: Mapping[str, Any] | _PrecipObj) -> str:  # noqa: D401
         snow_amt = _one_hour_amt(getattr(hour, "snow", None))  # type: ignore[arg-type]
 
     amount = rain_amt or snow_amt
-    return f"{amount:.2f}" if amount > 0 else ""
+    if amount <= 0:
+        return ""
+    if imperial:
+        amount = mm_to_inches(amount)
+    return f"{amount:.2f}"
 
 
 def moon_phase_icon(phase: float) -> str:
