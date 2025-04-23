@@ -176,6 +176,20 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
     arrow_deg_raw: float = float(weather.current.wind_deg or 0)
     arrow_deg = int((round(arrow_deg_raw / 10) * 10) % 360)
 
+    # --- Daily list: first N forecast days strictly *after* the *local* day ---
+    from datetime import timedelta
+
+    loc_tz = timezone(timedelta(seconds=weather.timezone_offset))
+    today_local = now.astimezone(loc_tz).date()
+
+    # Skip any entry whose local date is today **or tomorrow** so that the
+    # multi‑day strip begins the day after tomorrow (e.g. Thu if now is Tue).
+    tomorrow_local = today_local + timedelta(days=1)
+
+    future_daily = [
+        d for d in weather.daily if d.dt.astimezone(loc_tz).date() > tomorrow_local
+    ][: cfg.get("daily_count", 5)]
+
     return {
         # meta
         "date": now.strftime("%A, %B %d %Y"),
@@ -205,7 +219,7 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
         "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][
             : cfg.get("hourly_count", 8)
         ],
-        "daily": weather.daily[1 : 1 + cfg.get("daily_count", 5)],
+        "daily": future_daily,
         # helper filters
         "deg_to_cardinal": deg_to_cardinal,
         "arrow_deg": arrow_deg,
