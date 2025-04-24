@@ -11,7 +11,7 @@ from .models import WeatherResponse
 from .errors import WeatherAPIError
 from .helpers import (
     deg_to_cardinal,
-    owm_icon_class,
+    get_weather_icon_filename,
     beaufort_from_speed,
     hourly_precip,
     moon_phase_icon,
@@ -223,7 +223,7 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
         # helper filters
         "deg_to_cardinal": deg_to_cardinal,
         "arrow_deg": arrow_deg,
-        "owm_icon": owm_icon_class,
+        "weather_icon": get_weather_icon_filename,
         # bind metric/imperial choice once so templates stay simple
         "hourly_precip": cast(
             Callable[[Any], str],

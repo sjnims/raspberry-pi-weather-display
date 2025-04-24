@@ -26,7 +26,9 @@ static/icons/battery_empty.svg
 </header>
 
 <section class="current">
-  <i class="wi {{ current.weather[0] | owm_icon }} icon-lg"></i>
+  <img src="{{ url_for('static', filename='icons/' ~ (current.weather[0] | weather_icon)) }}"
+       alt="Weather icon"
+       class="icon-lg">
   <div class="temps">
     <div class="temp-now">{{ current.temp | round | int }}{{ units_temp }}</div>
     <div class="feels-like">
@@ -42,10 +44,16 @@ static/icons/battery_empty.svg
     </div>
     {% endif %}
     <div class="extras">
-      <i class="wi {{ moon_phase | moon_phase_icon }}"></i>
-      <i class="wi wi-wind-beaufort-{{ bft }}"></i>
-      <i class="wi wi-wind-optimized"
-         style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);"></i>
+      <img src="{{ url_for('static', filename='icons/' ~ (moon_phase | moon_phase_icon)) }}"
+           alt="Moon phase"
+           class="icon-md">
+      <img src="{{ url_for('static', filename='icons/wi-wind-beaufort-' ~ bft ~ '.svg') }}"
+           alt="Wind force (BFT)"
+           class="icon-md">
+      <img src="{{ url_for('static', filename='icons/wi-wind.svg') }}"
+           alt="Wind direction"
+           class="icon-md"
+           style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);">
     </div>
   </div>
 
@@ -61,6 +69,11 @@ static/icons/battery_empty.svg
       {% endif %}
     </div>
     <div>AQI: <span class="aqi-{{ aqi_value | default(0) }}">{{ aqi }}</span></div>
-    <div class="tiny"><i class="wi wi-refresh"></i> {{ last_refresh }}</div>
+    <div class="tiny">
+      <img src="{{ url_for('static', filename='icons/wi-refresh.svg') }}"
+           alt="Last refresh"
+           class="icon-sm">
+      {{ last_refresh }}
+    </div>
   </div>
 </section>

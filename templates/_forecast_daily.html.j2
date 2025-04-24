@@ -15,7 +15,11 @@
   {# ─── weather icon ─── #}
   <tr>
     {% for d in daily %}
-      <td><i class="wi {{ owm_icon(d.weather[0]) }}"></i></td>
+      <td>
+        <img src="{{ url_for('static', filename='icons/' ~ (d.weather[0] | weather_icon)) }}"
+             alt="Forecast icon"
+             class="icon-md">
+      </td>
     {% endfor %}
   </tr>
 
@@ -33,7 +37,11 @@
   {# ─── moon-phase icon ─── #}
   <tr>
     {% for d in daily %}
-      <td><i class="wi {{ moon_phase_icon(d.moon_phase) }}"></i></td>
+      <td>
+        <img src="{{ url_for('static', filename='icons/' ~ (d.moon_phase | moon_phase_icon)) }}"
+             alt="Moon phase"
+             class="icon-md">
+      </td>
     {% endfor %}
   </tr>
 </table>

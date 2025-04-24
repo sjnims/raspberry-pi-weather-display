@@ -15,7 +15,11 @@
   {# ─── weather icon (take first condition) ─── #}
   <tr>
     {% for h in hourly %}
-      <td><i class="wi {{ owm_icon(h.weather[0]) }}"></i></td>
+      <td>
+        <img src="{{ url_for('static', filename='icons/' ~ (h.weather[0] | weather_icon)) }}"
+             alt="Hourly icon"
+             class="icon-md">
+      </td>
     {% endfor %}
   </tr>
 
@@ -31,8 +35,10 @@
     {% for h in hourly %}
       <td>
         {{ h.wind_speed | round(0) }} {{ units_wind }}<br>
-        <i class="wi wi-wind-optimized tiny"
-           style="transform: rotate({{ h.wind_deg + 180 }}deg);"></i>
+        <img src="{{ url_for('static', filename='icons/wi-wind.svg') }}"
+             alt="Wind direction"
+             class="tiny"
+             style="transform: rotate({{ h.wind_deg + 180 }}deg);">
       </td>
     {% endfor %}
   </tr>

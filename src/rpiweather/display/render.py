@@ -16,7 +16,7 @@ from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 from rpiweather.weather.helpers import (
     deg_to_cardinal,
     moon_phase_icon,
-    owm_icon_class,
+    get_weather_icon_filename,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # repo root
@@ -38,7 +38,7 @@ def wind_rotation(deg: float, direction: str = "towards") -> float:  # noqa: D40
 ENV.filters.update(
     {
         "deg_to_cardinal": deg_to_cardinal,
-        "owm_icon": owm_icon_class,
+        "weather_icon": get_weather_icon_filename,
         "moon_phase_icon": moon_phase_icon,
         "wind_rotation": wind_rotation,
     }

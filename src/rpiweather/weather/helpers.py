@@ -66,24 +66,40 @@ def beaufort_from_speed(speed_mph: float) -> int:
     return 12
 
 
-def owm_icon_class(weather_item: Mapping[str, Any] | _WeatherObj) -> str:  # noqa: D401
-    """Return the Weather Icons CSS class for an OpenWeather *weather* entry.
-
-    The helper accepts either a raw ``Mapping`` from the JSON API **or** the
-    typed ``WeatherCondition`` model that we surface elsewhere.  A small
-    ``Protocol`` (``_WeatherObj``) lets *pyright --strict* understand the
-    attribute access without resorting to ``Any``.
+def get_weather_icon_filename(weather_item: Mapping[str, Any] | _WeatherObj) -> str:
     """
+    Return the Weather Icons SVG filename for an OpenWeather *weather* entry.
 
+    Accepts either a raw Mapping from the JSON API or a typed WeatherCondition model.
+
+    Example output: 'wi-night-rain.svg' or 'wi-day-clear.svg'
+    """
     if isinstance(weather_item, Mapping):
-        wid_str: str = str(weather_item["id"])
-        icon_str: str = str(weather_item["icon"])
+        # Main is the textual description of the weather condition
+        # (e.g. "clear sky", "light rain", etc.) and icon is the OpenWeather
+        # icon code (e.g. "01d", "02n", etc.).  The icon code is a 2-character
+        # string where the first character is a number (0-9) and the second
+        # character is either "d" (day) or "n" (night).
+        main = str(weather_item.get("main", "")).lower().replace(" ", "-")
+        icon = str(weather_item.get("icon", ""))
     else:  # _WeatherObj path – protected by runtime_checkable
-        wid_str = str(weather_item.id)
-        icon_str = str(weather_item.icon)
+        main = str(getattr(weather_item, "main", "")).lower().replace(" ", "-")
+        icon = str(getattr(weather_item, "icon", ""))
 
-    variant: str = "night" if icon_str.endswith("n") else "day"
-    return f"wi-owm-{variant}-{wid_str}"
+    if not main:
+        return "wi-unknown.svg"
+
+    if icon.endswith("d"):
+        variant = "day"
+    elif icon.endswith("n"):
+        variant = "night"
+    else:
+        variant = None
+
+    if variant:
+        return f"wi-{variant}-{main}.svg"
+    else:
+        return f"wi-{main}.svg"
 
 
 def _one_hour_amt(mapping: Mapping[str, Any] | None) -> float:
