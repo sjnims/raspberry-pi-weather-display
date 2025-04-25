@@ -7,7 +7,7 @@ from typing import Optional
 
 from rpiweather.config import QuietHours
 
-__all__ = ["in_quiet_hours", "seconds_until_quiet_end"]
+__all__ = ["in_quiet_hours", "seconds_until_quiet_end", "get_refresh_delay_minutes"]
 
 
 def in_quiet_hours(ts: datetime, quiet: Optional[QuietHours]) -> bool:
@@ -45,3 +45,19 @@ def seconds_until_quiet_end(ts: datetime, quiet: Optional[QuietHours]) -> int:
         candidate += timedelta(days=1)
 
     return int((candidate - ts).total_seconds())
+
+
+def get_refresh_delay_minutes(base_minutes: int, soc: int) -> int:
+    """
+    Return the refresh delay in minutes based on the battery state of charge (SoC).
+    Slows down refresh rate as battery level drops to conserve power.
+    """
+    if soc <= 5:
+        return base_minutes * 4
+    elif soc <= 15:
+        return base_minutes * 3
+    elif soc <= 25:
+        return base_minutes * 2
+    elif soc <= 50:
+        return int(base_minutes * 1.5)
+    return base_minutes

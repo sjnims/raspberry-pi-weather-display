@@ -34,7 +34,11 @@ from rpiweather.weather.helpers import (
     get_battery_status,
     PiJuiceLike,
 )
-from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
+from rpiweather.helpers import (
+    in_quiet_hours,
+    seconds_until_quiet_end,
+    get_refresh_delay_minutes,
+)
 from rpiweather.remote import should_stay_awake
 from rpiweather.power import graceful_shutdown, schedule_wakeup
 
@@ -78,20 +82,6 @@ def ensure_rtc_synced(pijuice: Optional[PiJuiceLike]) -> None:
             logger.info("RTC set from system clock")
     except Exception as exc:
         logger.debug("RTC sync skipped: %s", exc)
-
-
-def calculate_sleep_minutes(base_minutes: int, soc: int) -> int:
-    if soc <= 5:
-        multiplier = 4.0
-    elif soc <= 15:
-        multiplier = 3.0
-    elif soc <= 25:
-        multiplier = 2.0
-    elif soc <= 50:
-        multiplier = 1.5
-    else:
-        multiplier = 1.0
-    return int(base_minutes * multiplier)
 
 
 # ───────────────────────── dashboard cycle ──────────────────────────────────
@@ -235,7 +225,7 @@ def run(
         if once:
             break
 
-        sleep_min = calculate_sleep_minutes(base_minutes, soc)
+        sleep_min = get_refresh_delay_minutes(base_minutes, soc)
         # decide whether to power off instead of sleep
         should_poweroff = soc <= cfg_obj.poweroff_soc or (
             in_quiet and sleep_min >= MIN_SHUTDOWN_SLEEP_MIN
