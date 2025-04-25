@@ -171,7 +171,7 @@ def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any
     tomorrow_local = today_local + timedelta(days=1)
 
     future_daily = [
-        d for d in weather.daily if d.dt.astimezone(loc_tz).date() > tomorrow_local
+        d for d in weather.daily if d.dt.astimezone(loc_tz).date() >= tomorrow_local
     ][: cfg.daily_count]
 
     # Precompute local_time strings for each hourly forecast object
