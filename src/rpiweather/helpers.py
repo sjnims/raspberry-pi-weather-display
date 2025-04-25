@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, time, timedelta
 from typing import Optional
 
-from rpiweather.config import QuietHours
+from rpiweather.config import QuietHours, WeatherConfig
 
 __all__ = ["in_quiet_hours", "seconds_until_quiet_end", "get_refresh_delay_minutes"]
 
@@ -61,3 +61,14 @@ def get_refresh_delay_minutes(base_minutes: int, soc: int) -> int:
     elif soc <= 50:
         return int(base_minutes * 1.5)
     return base_minutes
+
+
+def should_power_off(cfg: WeatherConfig, soc: int, now: datetime) -> bool:
+    """
+    Return True if the system should power off based on battery SoC or quiet hours.
+    """
+    if soc <= cfg.poweroff_soc:
+        return True
+    if in_quiet_hours(now, cfg.quiet_hours):
+        return True
+    return False

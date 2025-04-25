@@ -38,6 +38,7 @@ from rpiweather.helpers import (
     in_quiet_hours,
     seconds_until_quiet_end,
     get_refresh_delay_minutes,
+    should_power_off,
 )
 from rpiweather.remote import should_stay_awake
 from rpiweather.power import graceful_shutdown, schedule_wakeup
@@ -227,10 +228,7 @@ def run(
 
         sleep_min = get_refresh_delay_minutes(base_minutes, soc)
         # decide whether to power off instead of sleep
-        should_poweroff = soc <= cfg_obj.poweroff_soc or (
-            in_quiet and sleep_min >= MIN_SHUTDOWN_SLEEP_MIN
-        )
-        if should_poweroff:
+        if should_power_off(cfg_obj, soc, now):
             wake_dt = datetime.now() + timedelta(minutes=sleep_min)
             schedule_wakeup(wake_dt)
             logger.info(
