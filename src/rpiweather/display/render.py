@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 import platform
 import re
 import subprocess
@@ -17,6 +18,8 @@ from rpiweather.weather.helpers import (
     get_moon_phase_label,
     get_weather_icon_filename,
 )
+from rpiweather.weather.api import WeatherResponse
+from rpiweather.config import WeatherConfig
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # repo root
 
@@ -42,7 +45,6 @@ ENV.filters.update(
         "wind_rotation": wind_rotation,
     }
 )
-
 ENV.filters["moon_phase_label"] = get_moon_phase_label
 
 LOCAL_TZ = zoneinfo.ZoneInfo("America/New_York")
@@ -106,3 +108,64 @@ def html_to_png(html: str, out: Path, preview: bool = False) -> None:
     if platform.system() == "Linux":
         cmd = ["xvfb-run", "-a"] + cmd
     subprocess.run(cmd, check=True)
+
+
+# ─────────────────────────── Dashboard Context Builder ──────────────────────────
+
+
+def build_dashboard_context(
+    cfg: WeatherConfig,
+    weather: WeatherResponse,
+    soc: int,
+    is_charging: bool,
+    battery_warning: bool,
+) -> dict[str, Any]:
+    """Build the dashboard template context."""
+    now = datetime.now()
+    today_local = now.date()
+
+    uvi_slice = [
+        (h.dt, h.uvi)
+        for h in weather.hourly
+        if h.dt.astimezone().date() == today_local and h.uvi is not None
+    ]
+    if uvi_slice:
+        max_uvi_entry = max(uvi_slice, key=lambda x: x[1])
+        max_uvi_time = max_uvi_entry[0].astimezone()
+        max_uvi_time_str = max_uvi_time.strftime(cfg.time_format_general)
+    else:
+        max_uvi_time_str = None
+
+    sunrise_dt = weather.current.sunrise
+    sunset_dt = weather.current.sunset
+
+    sunrise_str = sunrise_dt.strftime(cfg.time_format_general)
+    sunset_str = sunset_dt.strftime(cfg.time_format_general)
+
+    moon_phase = weather.daily[0].moon_phase if weather.daily else 0.0
+
+    ctx = {
+        "now": now,
+        "date": now.strftime("%A, %B %-d"),
+        "last_refresh": now.strftime(cfg.time_format_general + " %Z"),
+        "soc": soc,
+        "battery_warning": battery_warning,
+        "is_charging": is_charging,
+        "units_temp": "°C" if cfg.units == "metric" else "°F",
+        "units_speed": "m/s" if cfg.units == "metric" else "mph",
+        "units_pressure": "hPa" if cfg.units == "metric" else "inHg",
+        "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][
+            : cfg.hourly_count
+        ],
+        "daily": [d for d in weather.daily if d.dt.astimezone().date() >= today_local][
+            : cfg.daily_count
+        ],
+        "sunrise": sunrise_str,
+        "sunset": sunset_str,
+        "moon_phase": moon_phase,
+        "moon_phase_icon": get_moon_phase_icon_filename,
+        "moon_phase_label": get_moon_phase_label,
+        "uvi_time": max_uvi_time_str,
+    }
+
+    return ctx
