@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Final, Any, Dict, Callable, cast
 from functools import partial
 import json
@@ -15,6 +15,7 @@ from .helpers import (
     beaufort_from_speed,
     hourly_precip,
     get_moon_phase_icon_filename,
+    get_moon_phase_label,
 )
 
 from rpiweather.config import WeatherConfig
@@ -162,8 +163,6 @@ def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any
     arrow_deg = int((round(arrow_deg_raw / 10) * 10) % 360)
 
     # --- Daily list: first N forecast days strictly *after* the *local* day ---
-    from datetime import timedelta
-
     loc_tz = timezone(timedelta(seconds=weather.timezone_offset))
     today_local = now.astimezone(loc_tz).date()
 
@@ -174,6 +173,14 @@ def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any
     future_daily = [
         d for d in weather.daily if d.dt.astimezone(loc_tz).date() > tomorrow_local
     ][: cfg.daily_count]
+
+    # Precompute local_time strings for each hourly forecast object
+    for h in weather.hourly:
+        h.local_time = h.dt.astimezone().strftime(cfg.time_format)
+
+    # Precompute weekday_short string for each daily forecast object
+    for d in weather.daily:
+        d.weekday_short = d.dt.astimezone().strftime("%a")
 
     return {
         # meta
@@ -214,4 +221,5 @@ def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any
             partial(hourly_precip, imperial=(cfg.units == "imperial")),
         ),
         "moon_phase_icon": get_moon_phase_icon_filename,
+        "moon_phase_label": get_moon_phase_label,
     }

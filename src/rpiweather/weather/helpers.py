@@ -193,34 +193,66 @@ def get_moon_phase_icon_filename(phase: float) -> str:
     0.75: Last Quarter
     """
     phases = [
-        "wi-moon-alt-new",  # 0
-        "wi-moon-alt-waxing-crescent-1",  # 0.04
-        "wi-moon-alt-waxing-crescent-2",  # 0.08
-        "wi-moon-alt-waxing-crescent-3",  # 0.12
-        "wi-moon-alt-waxing-crescent-4",  # 0.16
-        "wi-moon-alt-waxing-crescent-5",  # 0.20
-        "wi-moon-alt-waxing-crescent-6",  # 0.24
-        "wi-moon-alt-first-quarter",  # 0.25
-        "wi-moon-alt-waxing-gibbous-1",  # 0.29
-        "wi-moon-alt-waxing-gibbous-2",  # 0.33
-        "wi-moon-alt-waxing-gibbous-3",  # 0.37
-        "wi-moon-alt-waxing-gibbous-4",  # 0.41
-        "wi-moon-alt-waxing-gibbous-5",  # 0.45
-        "wi-moon-alt-waxing-gibbous-6",  # 0.49
-        "wi-moon-alt-full",  # 0.5
-        "wi-moon-alt-waning-gibbous-1",  # 0.54
-        "wi-moon-alt-waning-gibbous-2",  # 0.58
-        "wi-moon-alt-waning-gibbous-3",  # 0.62
-        "wi-moon-alt-waning-gibbous-4",  # 0.66
-        "wi-moon-alt-waning-gibbous-5",  # 0.70
-        "wi-moon-alt-waning-gibbous-6",  # 0.74
-        "wi-moon-alt-third-quarter",  # 0.75
-        "wi-moon-alt-waning-crescent-1",  # 0.79
-        "wi-moon-alt-waning-crescent-2",  # 0.83
-        "wi-moon-alt-waning-crescent-3",  # 0.87
-        "wi-moon-alt-waning-crescent-4",  # 0.91
-        "wi-moon-alt-waning-crescent-5",  # 0.95
-        "wi-moon-alt-waning-crescent-6",  # 0.99
+        "new",  # 0
+        "waxing-crescent-1",  # 0.04
+        "waxing-crescent-2",  # 0.08
+        "waxing-crescent-3",  # 0.12
+        "waxing-crescent-4",  # 0.16
+        "waxing-crescent-5",  # 0.20
+        "waxing-crescent-6",  # 0.24
+        "first-quarter",  # 0.25
+        "waxing-gibbous-1",  # 0.29
+        "waxing-gibbous-2",  # 0.33
+        "waxing-gibbous-3",  # 0.37
+        "waxing-gibbous-4",  # 0.41
+        "waxing-gibbous-5",  # 0.45
+        "waxing-gibbous-6",  # 0.49
+        "full",  # 0.5
+        "waning-gibbous-1",  # 0.54
+        "waning-gibbous-2",  # 0.58
+        "waning-gibbous-3",  # 0.62
+        "waning-gibbous-4",  # 0.66
+        "waning-gibbous-5",  # 0.70
+        "waning-gibbous-6",  # 0.74
+        "third-quarter",  # 0.75
+        "waning-crescent-1",  # 0.79
+        "waning-crescent-2",  # 0.83
+        "waning-crescent-3",  # 0.87
+        "waning-crescent-4",  # 0.91
+        "waning-crescent-5",  # 0.95
+        "waning-crescent-6",  # 0.99
     ]
     index = min(int(phase * 28), 27)  # Ensure index is within bounds
-    return f"{phases[index]}.svg"
+    return f"wi-moon-alt-{phases[index]}.svg"
+
+
+def get_moon_phase_label(phase: float) -> str:
+    """
+    Convert OpenWeather moon_phase float (0.0-1.0) to a human-readable phase label.
+    """
+    labels = [
+        "New Moon",
+        "Waxing Crescent",
+        "First Quarter",
+        "Waxing Gibbous",
+        "Full Moon",
+        "Waning Gibbous",
+        "Last Quarter",
+        "Waning Crescent",
+    ]
+    if phase < 0.03 or phase > 0.97:
+        return labels[0]  # New Moon
+    elif phase < 0.22:
+        return labels[1]
+    elif phase < 0.28:
+        return labels[2]
+    elif phase < 0.47:
+        return labels[3]
+    elif phase < 0.53:
+        return labels[4]
+    elif phase < 0.72:
+        return labels[5]
+    elif phase < 0.78:
+        return labels[6]
+    else:
+        return labels[7]

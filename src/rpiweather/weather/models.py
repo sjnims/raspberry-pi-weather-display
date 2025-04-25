@@ -61,6 +61,7 @@ class Hourly(BaseModel):
     wind_deg: int | None = None
     uvi: float | None = None
     weather: List[WeatherCondition]
+    local_time: Optional[str] = None
 
     @field_validator("dt", mode="before")
     @classmethod
@@ -87,6 +88,7 @@ class Daily(BaseModel):
     weather: List[WeatherCondition]
     sunrise_local: Optional[str] = None
     sunset_local: Optional[str] = None
+    weekday_short: Optional[str] = None
 
     model_config = ConfigDict(extra="allow")
 

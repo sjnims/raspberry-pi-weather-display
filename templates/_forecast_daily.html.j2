@@ -8,7 +8,7 @@
   {# ─── header: weekday short name ─── #}
   <tr>
     {% for d in daily %}
-      <th>{{ d.dt | strftime("%a") }}</th>
+      <th>{{ d.weekday_short }}</th>
     {% endfor %}
   </tr>
 
@@ -42,6 +42,13 @@
              alt="Moon phase"
              class="icon-tiny">
       </td>
+    {% endfor %}
+  </tr>
+
+  {# ─── moon-phase label ─── #}
+  <tr>
+    {% for d in daily %}
+      <td>{{ d.moon_phase | moon_phase_label }}</td>
     {% endfor %}
   </tr>
 

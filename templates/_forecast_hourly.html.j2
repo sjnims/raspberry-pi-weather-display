@@ -8,7 +8,7 @@
   {# ─── header: local time of each hour ─── #}
   <tr>
     {% for h in hourly %}
-      <th>{{ h.dt.astimezone() | strftime(time_fmt) }}</th>
+      <th>{{ h.local_time }}</th>
     {% endfor %}
   </tr>
 

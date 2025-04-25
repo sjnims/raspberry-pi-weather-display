@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader, Template, Undefined, select_au
 from rpiweather.weather.helpers import (
     deg_to_cardinal,
     get_moon_phase_icon_filename,
+    get_moon_phase_label,
     get_weather_icon_filename,
 )
 
@@ -41,6 +42,8 @@ ENV.filters.update(
         "wind_rotation": wind_rotation,
     }
 )
+
+ENV.filters["moon_phase_label"] = get_moon_phase_label
 
 LOCAL_TZ = zoneinfo.ZoneInfo("America/New_York")
 FULL_REFRESH_INTERVAL = timedelta(hours=24)
