@@ -1,11 +1,31 @@
 from __future__ import annotations
 
 import csv
-from typing import Any, Mapping
-from typing import Protocol, runtime_checkable
+from typing import Any, Mapping, Protocol, runtime_checkable, TypedDict
 
 
 OWM_ICON_MAP: dict[str, str] = {}
+
+
+class BatteryStatusDict(TypedDict, total=False):
+    charge_level: int
+    is_charging: bool
+    is_discharging: bool
+    voltage: float
+
+
+class PiJuiceStatusDict(TypedDict):
+    battery: BatteryStatusDict
+
+
+@runtime_checkable
+class PiJuiceLike(Protocol):
+    class StatusAPI(Protocol):
+        def GetStatus(self) -> PiJuiceStatusDict: ...
+        def GetChargeLevel(self) -> dict[str, int]: ...
+        def GetBatteryTemperature(self) -> dict[str, float]: ...
+
+    status: StatusAPI
 
 
 def load_icon_mapping(path: str = "owm_icon_map.csv") -> None:
@@ -38,15 +58,57 @@ class _PrecipObj(Protocol):
     snow: Mapping[str, Any] | None
 
 
-#
+def get_weather_icon_filename(weather_item: Mapping[str, Any] | _WeatherObj) -> str:
+    """
+    Return the Weather Icons SVG filename for an OpenWeather *weather* entry.
+
+    This uses a lookup table (loaded from CSV) to map OWM condition `id` and `icon`
+    to the correct `wi-*.svg` icon. Handles special cases like day/night variants
+    for ids 800-804 (based on the `icon` suffix 'd' or 'n').
+
+    Example output: 'wi-day-sunny.svg' or 'wi-night-clear.svg'
+    """
+    if isinstance(weather_item, Mapping):
+        owm_id = str(weather_item.get("id", "")).strip()
+        icon = str(weather_item.get("icon", "")).strip()
+    else:
+        owm_id = str(getattr(weather_item, "id", "")).strip()
+        icon = str(getattr(weather_item, "icon", "")).strip()
+
+    key = (
+        f"{owm_id}{icon[-1]}"
+        if owm_id in {"800", "801", "802", "803", "804"}
+        else owm_id
+    )
+    return OWM_ICON_MAP.get(key, "wi-na.svg")
+
+
+def get_battery_status(pijuice: PiJuiceLike) -> dict[str, Any]:
+    """
+    Get the current battery status from the PiJuice object.
+    Returns a dictionary with keys: 'charge_level', 'is_charging', 'is_discharging', 'battery_voltage'.
+    """
+    status = pijuice.status.GetStatus()
+    charge_level = status.get("battery", {}).get("charge_level", 0)
+    is_charging = status.get("battery", {}).get("is_charging", False)
+    is_discharging = status.get("battery", {}).get("is_discharging", False)
+    battery_voltage = status.get("battery", {}).get("voltage", 0.0)
+    return {
+        "charge_level": charge_level,
+        "is_charging": is_charging,
+        "is_discharging": is_discharging,
+        "battery_voltage": battery_voltage,
+    }
+
+
 # ── unit‑conversion helpers ──────────────────────────────────────────────
 def mm_to_inches(mm: float) -> float:
-    """Convert millimetres to inches (2 dp)."""
+    """Convert millimetres to inches (2 dp)."""
     return round(mm / 25.4, 2)
 
 
 def hpa_to_inhg(hpa: float) -> float:
-    """Convert pressure hPa → inches Hg (2 dp)."""
+    """Convert pressure hPa → inches Hg (2 dp)."""
     return round(hpa * 0.02953, 2)
 
 
@@ -84,33 +146,8 @@ def beaufort_from_speed(speed_mph: float) -> int:
     return 12
 
 
-def get_weather_icon_filename(weather_item: Mapping[str, Any] | _WeatherObj) -> str:
-    """
-    Return the Weather Icons SVG filename for an OpenWeather *weather* entry.
-
-    This uses a lookup table (loaded from CSV) to map OWM condition `id` and `icon`
-    to the correct `wi-*.svg` icon. Handles special cases like day/night variants
-    for ids 800-804 (based on the `icon` suffix 'd' or 'n').
-
-    Example output: 'wi-day-sunny.svg' or 'wi-night-clear.svg'
-    """
-    if isinstance(weather_item, Mapping):
-        owm_id = str(weather_item.get("id", "")).strip()
-        icon = str(weather_item.get("icon", "")).strip()
-    else:
-        owm_id = str(getattr(weather_item, "id", "")).strip()
-        icon = str(getattr(weather_item, "icon", "")).strip()
-
-    key = (
-        f"{owm_id}{icon[-1]}"
-        if owm_id in {"800", "801", "802", "803", "804"}
-        else owm_id
-    )
-    return OWM_ICON_MAP.get(key, "wi-na.svg")
-
-
 def _one_hour_amt(mapping: Mapping[str, Any] | None) -> float:
-    """Return the 1-hour precip amount from an OpenWeather sub‑dict."""
+    """Return the 1-hour precip amount from an OpenWeather sub-dict."""
     if mapping is None:
         return 0.0
     try:
