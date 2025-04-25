@@ -6,12 +6,12 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/pi/weather-display
-ExecStart=/home/pi/weather-display/.venv/bin/python /home/pi/weather-display/main.py \
-          --config /home/pi/weather-display/config.yaml
+ExecStart=/home/pi/weather-display/.venv/bin/weather run --config /home/pi/weather-display/config.yaml
 Restart=on-failure
 RestartSec=10
 User=pi
 Environment=PYTHONUNBUFFERED=1
+StandardOutput=journal
 
 [Install]
 WantedBy=multi-user.target

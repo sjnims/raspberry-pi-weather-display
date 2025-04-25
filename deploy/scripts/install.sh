@@ -5,8 +5,8 @@
 #   curl -sSL https://raw.githubusercontent.com/sjnims/raspberry-pi-weather-display/main/deploy/scripts/install.sh | bash
 #
 # The script:
-#   • installs Python 3.11 + Poetry (if missing)
-#   • creates /opt/rpiweather venv and installs the latest wheel from GitHub Releases
+#   • installs Python 3.11 + Poetry
+#   • clones the repository and installs dependencies via Poetry
 #   • deploys /etc/systemd/system/weather-display.service
 #   • applies power‑saving tweaks (CPU 700 MHz, HDMI/Bluetooth/LED off, Wi‑Fi APS‑SD)
 #   • reboots once everything is configured
@@ -26,7 +26,7 @@ warn()  { echo -e "\e[33m[install]\e[0m $1"; }
 ###############################################################################
 info "Updating apt & installing base packages"
 sudo apt-get update -qq
-sudo apt-get install -y python3.11 python3.11-venv git wget wkhtmltopdf cpufrequtils iw
+sudo apt-get install -y python3.11 git wget wkhtmltopdf cpufrequtils iw
 
 ###############################################################################
 # 2. Create application user & folders                                        #
@@ -40,26 +40,18 @@ sudo mkdir -p "$INSTALL_DIR"
 sudo chown rpiweather:rpiweather "$INSTALL_DIR"
 
 ###############################################################################
-# 3. Create venv & install the project wheel                                  #
+# 3. Clone the repo and install via Poetry                                    #
 ###############################################################################
-if [[ ! -d $VENV_DIR ]]; then
-  info "Creating virtual-env in $VENV_DIR"
-  sudo -u rpiweather python3.11 -m venv "$VENV_DIR"
+if [[ ! -d "$INSTALL_DIR/.venv" ]]; then
+  info "Installing Poetry and setting up environment"
+  sudo -u rpiweather curl -sSL https://install.python-poetry.org | python3 -
+  export PATH="/home/rpiweather/.local/bin:$PATH"
+
+  sudo -u rpiweather git clone https://github.com/${REPO}.git "$INSTALL_DIR"
+  cd "$INSTALL_DIR"
+  sudo -u rpiweather poetry config virtualenvs.in-project true
+  sudo -u rpiweather poetry install --no-root
 fi
-
-# Install / upgrade wheel from GitHub Releases
-# Fetch latest tag JSON if VERSION=latest
-if [[ "$VERSION" == "latest" ]]; then
-  TAG=$(wget -qO- "https://api.github.com/repos/${REPO}/releases/latest" | grep -Po '"tag_name": "\K[^"]+')
-else
-  TAG="$VERSION"
-fi
-
-WHEEL_URL="https://github.com/${REPO}/releases/download/${TAG}/rpiweather-${TAG#v}-py3-none-any.whl"
-
-info "Installing rpiweather wheel $TAG"
-sudo -u rpiweather "$VENV_DIR/bin/pip" install --upgrade pip
-sudo -u rpiweather "$VENV_DIR/bin/pip" install --upgrade "$WHEEL_URL"
 
 ###############################################################################
 # 4. Deploy systemd unit                                                      #
@@ -72,7 +64,7 @@ After=network-online.target
 [Service]
 Type=simple
 User=rpiweather
-ExecStart=$VENV_DIR/bin/weather run --config /home/rpiweather/config.yaml
+ExecStart=$INSTALL_DIR/.venv/bin/weather run --config /home/rpiweather/config.yaml
 Restart=on-failure
 Environment=PYTHONUNBUFFERED=1
 

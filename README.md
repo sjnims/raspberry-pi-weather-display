@@ -6,32 +6,25 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 
 ## Key features
 
-* **Config‑driven refresh** – base interval in `config.yaml` (default **120 min**) automatically **doubles when battery SoC < 25 %**.
+* **Adaptive refresh logic** – the base interval in `config.yaml` (default **120 min**) automatically scales based on battery SoC: refresh slows as the battery drains.
 * **Circuit breaker** – backs off × 4 after 3 consecutive API failures.
 * **Daily full white‑black‑white refresh** removes any ghosting.
 * **PiJuice RTC** set on first network sync each boot.
+* **PiJuice UPS** with **12 000 mAh** LiPo battery
 * `/var/log` & `/tmp` mounted on **tmpfs** (longer SD life, saves ≈ 1–2 mA).
 * **Wi‑Fi APS‑SD**; HDMI, Bluetooth, LEDs disabled; CPU powersave @ 700 MHz.
 * **VCOM = ‑1.45 V** verified at runtime for maximum contrast.
-* Auto‑darkening battery icon when SoC < 25 %.
+* Automatic power-off between refreshes unless overridden (e.g. via KEEP_AWAKE).
+* Docker-compatible control interface via environment variable for remote preview/dev control.
+* Automatic shutdown during quiet hours or low battery to conserve energy.
+* Battery icon dynamically updates with SoC and charging state.
 * Full OpenWeather One Call 3.0 ingestion
 * Jinja2 HTML → PNG via `wkhtmltoimage`, GC16 greyscale display.
 * **Error visualization** – API failures display a clear error message on the e-ink screen, showing error details, time of last attempt, and battery status.
-* **Typed API model** – `fetch_weather()` now returns a
-  [`WeatherResponse`](./src/rpiweather/weather/models.py) Pydantic v2 model
-  instead of a raw dict, so downstream code (and the Jinja template) can use
-  **dot‑access** with full type checking and validation.
-
-  ```python
-  from pathlib import Path
-  from rpiweather.weather.models import WeatherResponse
-
-  wx = WeatherResponse.model_validate_json(
-      Path("tests/data/onecall_sample.json").read_text()
-  )
-  print(wx.current.temp)          # -> 72.1
-  print(wx.hourly[0].dt.isoformat())
-  ```
+* The weather API response is parsed into a typed Pydantic v2 model (`WeatherResponse`) for safe downstream access in both code and templates.
+* Accurate SVG weather icons mapped from OpenWeather condition IDs (with day/night variants), powered by Weather Icons.
+* Optimized e-ink rendering modes (GC16 for full refresh, partial updates for speed and battery savings).
+* Preview mode renders to HTML and PNG without updating the e-ink display — useful for testing layouts or data.
 
 A Typer‑based CLI (`weather`) replaces the old `python main.py` entry‑point: run `weather --help` for commands.
 
@@ -49,63 +42,35 @@ A Typer‑based CLI (`weather`) replaces the old `python main.py` entry‑point:
 
 ---
 
-## Directory Tree
+## Docker Integration
 
-```text
-raspberry‑pi‑weather-display/
-├── src/
-│   └── rpiweather/
-│       ├── cli.py
-│       ├── display/
-│       │   ├── __init__.py
-│       │   ├── epaper.py
-│       │   ├── error_ui.py
-│       │   └── render.py
-│       └── weather/
-│           ├── __init__.py
-│           ├── api.py
-│           ├── errors.py
-│           └── helpers.py
-├── deploy/
-│   ├── weather-display.service
-│   └── scripts/
-│       └── install.sh
-├── templates/
-│   └── dashboard.html.j2
-├── static/
-│   ├── css/ …
-│   ├── icons/ …
-│   └── fonts/ …
-├── config-sample.yaml
-├── LICENSE
-├── pyproject.toml
-├── pyrightconfig.json
-├── README.md
-├── requirements-dev.txt
-└── requirements.txt
+The weather display service can be controlled externally using a Docker container or orchestrator by setting the environment variable:
+
+```bash
+KEEP_AWAKE=1
 ```
+
+When this variable is present, the system will skip auto power-off and remain awake for debugging or remote preview mode.
 
 ---
 
 ## Quick Start
 
-# TODO: Update for v.2.0 branch install instructions
-
 ```bash
 ssh YOUR-USERNAME@YOUR-PI-IP
 curl -sSL https://raw.githubusercontent.com/sjnims/raspberry-pi-weather-display/main/deploy/scripts/install.sh | bash
 
-# The script creates .venv in ~/weather-display and installs all deps there.
-# Logs & service remain identical; to activate venv manually for local testing:
-source ~/weather-display/.venv/bin/activate
+# The script installs Poetry and creates a `.venv` inside the project directory.
+# To activate the virtual environment manually for local testing:
+cd ~/raspberry-pi-weather-display
+poetry shell
 ```
 
 *Be sure to replace `YOUR-USERNAME` and `YOUR-PI-IP` with your actual Raspberry Pi's SSH username and IP address/hostname.*
 
 The installer will:
 
-* Install Python deps & wkhtmltoimage
-* Clone this repo to `/home/pi/weather-display`
+* Clones the repository and installs dependencies via Poetry
 * Enable `weather-display.service`
 * Disable HDMI, Bluetooth, ACT/PWR LEDs
 * Cap CPU @ 700 MHz powersave
@@ -117,7 +82,7 @@ After reboot the display updates every **2 h** (less as SoC decreases beyond c
 
 ---
 
-## Local Preview while Developing
+## Local Preview (HTML + PNG)
 
 You can render the dashboard **locally** on your Mac/PC without touching the Pi. This speeds up template/CSS tweaks:
 
@@ -142,14 +107,12 @@ Every save automatically refreshes the browser tab—no Flask required.
 
 ## Manual Update
 
-# TODO: Update for v.2.0 branch update instructions
-
 ```bash
-ssh YOUR-USERNAME@YOUR-PI-IP 'git -C ~/weather-display pull --ff-only && sudo systemctl restart weather-display'
+ssh YOUR-USERNAME@YOUR-PI-IP 'cd ~/raspberry-pi-weather-display && git pull --ff-only && poetry install --no-root && sudo systemctl restart weather-display'
 ```
 
 *Be sure to replace `YOUR-USERNAME` and `YOUR-PI-IP` with your actual Raspberry Pi's SSH username and IP address/hostname.*
-*Note: `git pull` will not overwrite your local `config.yaml` file.*
+*This will update the source code and reinstall dependencies using Poetry. Your local `config.yaml` will not be overwritten.*
 
 ---
 
@@ -167,7 +130,7 @@ time_24h: false        # true for 24‑hour clock
 hourly_count: 8        # forecast hours to display
 daily_count: 5         # forecast days
 
-refresh_minutes: 120   # base interval; doubles automatically below 25 % SoC
+refresh_minutes: 120   # base interval; scales with SoC: 1× above 50%, 4× at 0–5%
 ```
 
 * `lat` and `lon` are your location's latitude and longitude (see [OpenWeather](https://openweathermap.org/) for details).
@@ -188,16 +151,20 @@ refresh_minutes: 120   # base interval; doubles automatically below 25 % SoC
 
 ## Power‑Saving Summary
 
-| Tweak                          | Savings |
-|--------------------------------|---------|
-| HDMI disabled                  | ~25 mA  |
-| CPU 700 MHz + powersave        | ~20 mA  |
-| Bluetooth off                  | ~6 mA   |
-| ACT & PWR LEDs off             | ~3 mA   |
-| Wi‑Fi APS‑SD                   | ~10 mA  |
-| tmpfs `/var/log` & `/tmp`      | ~1–2 mA |
+| Tweak                                  | Approx. Savings |
+|----------------------------------------|-----------------|
+| HDMI disabled                          | ~25 mA          |
+| CPU 700 MHz + powersave                | ~20 mA          |
+| Bluetooth off                          | ~6 mA           |
+| ACT & PWR LEDs off                     | ~3 mA           |
+| Wi‑Fi APS‑SD                           | ~10 mA          |
+| tmpfs `/var/log` & `/tmp`              | ~1–2 mA         |
+| Auto power-off (between refreshes + quiet hours) | ~15–18 mA  |
 
-Average idle **≈ 18 mA**; a refresh adds ~2 mAh/day → **≈ 21–23 days** on a 12 000 mAh pack.
+With automatic power-off between refreshes and quiet hour shutdown, average current draw is **~6–9 mA** depending on refresh frequency. A full refresh adds ~2 mAh. Runtime on a 12 000 mAh pack:
+* 2 refreshes/day → **50–60 days**
+* 4–6 refreshes/day → **30–40 days**
+* constant idle (no sleep) → **21–23 days**
 
 ---
 
@@ -205,7 +172,7 @@ Average idle **≈ 18 mA**; a refresh adds ~2 mAh/day → **≈ 21–23�
 
 * Weather data © [OpenWeather](https://openweathermap.org/)
 * Weather Icons © [Erik Flowers](https://github.com/erikflowers/weather-icons)
-* Battery status icons © [sevesalm/eInk-weather-display](https://github.com/sevesalm/eInk-weather-display/tree/master/svg_icons) (I renamed `battery_empty.svg` to `battery_charging.svg` based on how I've implemented the battery icon logic)
+* Battery icons © [Phosphor Icons](https://phosphoricons.com) – light style variant
 * Typeface: [Atkinson Hyperlegible](https://brailleinstitute.org/freefont)
 * Waveshare IT8951 [driver](https://github.com/waveshareteam/IT8951-ePaper) © Waveshare
 
