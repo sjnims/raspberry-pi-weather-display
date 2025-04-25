@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import platform
 import re
-import shutil
 import subprocess
-import tempfile
 import zoneinfo
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -15,7 +13,7 @@ from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
 from rpiweather.weather.helpers import (
     deg_to_cardinal,
-    moon_phase_icon,
+    get_moon_phase_icon_filename,
     get_weather_icon_filename,
 )
 
@@ -39,7 +37,7 @@ ENV.filters.update(
     {
         "deg_to_cardinal": deg_to_cardinal,
         "weather_icon": get_weather_icon_filename,
-        "moon_phase_icon": moon_phase_icon,
+        "moon_phase_icon": get_moon_phase_icon_filename,
         "wind_rotation": wind_rotation,
     }
 )
@@ -77,10 +75,11 @@ def html_to_png(html: str, out: Path, preview: bool = False) -> None:
     In preview mode on macOS/Windows, open in the default browser instead.
     """
     if preview and platform.system() != "Linux":
-        tmpdir = Path(tempfile.mkdtemp())
-        shutil.copytree(PROJECT_ROOT / "static", tmpdir / "static", dirs_exist_ok=True)
-        html_path = tmpdir / "dash-preview.html"
-        html_local = re.sub(r'href="/static/', 'href="static/', html)
+        out_dir = PROJECT_ROOT / "preview"
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        html_path = out_dir / "dash-preview.html"
+        html_local = re.sub(r'(href|src)="/static/', r'\1="static/', html)
         html_path.write_text(html_local, "utf-8")
 
         import webbrowser  # local import

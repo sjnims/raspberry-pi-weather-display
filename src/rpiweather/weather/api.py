@@ -14,7 +14,7 @@ from .helpers import (
     get_weather_icon_filename,
     beaufort_from_speed,
     hourly_precip,
-    moon_phase_icon,
+    get_moon_phase_icon_filename,
 )
 
 API_URL: Final = "https://api.openweathermap.org/data/3.0/onecall"
@@ -229,5 +229,5 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
             Callable[[Any], str],
             partial(hourly_precip, imperial=(cfg["units"] == "imperial")),
         ),
-        "moon_phase_icon": moon_phase_icon,
+        "moon_phase_icon": get_moon_phase_icon_filename,
     }

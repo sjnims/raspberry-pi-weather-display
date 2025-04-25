@@ -1,7 +1,25 @@
 from __future__ import annotations
 
+import csv
 from typing import Any, Mapping
 from typing import Protocol, runtime_checkable
+
+
+OWM_ICON_MAP: dict[str, str] = {}
+
+
+def load_icon_mapping(path: str = "owm_icon_map.csv") -> None:
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            owm_id = str(row["API response: id"]).strip()
+            icon = row["API response: icon"].strip()
+            key = (
+                f"{owm_id}{icon[-1]}"
+                if owm_id in {"800", "801", "802", "803", "804"}
+                else owm_id
+            )
+            OWM_ICON_MAP[key] = row["Weather Icons Filename"].strip()
 
 
 @runtime_checkable
@@ -70,36 +88,25 @@ def get_weather_icon_filename(weather_item: Mapping[str, Any] | _WeatherObj) -> 
     """
     Return the Weather Icons SVG filename for an OpenWeather *weather* entry.
 
-    Accepts either a raw Mapping from the JSON API or a typed WeatherCondition model.
+    This uses a lookup table (loaded from CSV) to map OWM condition `id` and `icon`
+    to the correct `wi-*.svg` icon. Handles special cases like day/night variants
+    for ids 800-804 (based on the `icon` suffix 'd' or 'n').
 
-    Example output: 'wi-night-rain.svg' or 'wi-day-clear.svg'
+    Example output: 'wi-day-sunny.svg' or 'wi-night-clear.svg'
     """
     if isinstance(weather_item, Mapping):
-        # Main is the textual description of the weather condition
-        # (e.g. "clear sky", "light rain", etc.) and icon is the OpenWeather
-        # icon code (e.g. "01d", "02n", etc.).  The icon code is a 2-character
-        # string where the first character is a number (0-9) and the second
-        # character is either "d" (day) or "n" (night).
-        main = str(weather_item.get("main", "")).lower().replace(" ", "-")
-        icon = str(weather_item.get("icon", ""))
-    else:  # _WeatherObj path – protected by runtime_checkable
-        main = str(getattr(weather_item, "main", "")).lower().replace(" ", "-")
-        icon = str(getattr(weather_item, "icon", ""))
-
-    if not main:
-        return "wi-unknown.svg"
-
-    if icon.endswith("d"):
-        variant = "day"
-    elif icon.endswith("n"):
-        variant = "night"
+        owm_id = str(weather_item.get("id", "")).strip()
+        icon = str(weather_item.get("icon", "")).strip()
     else:
-        variant = None
+        owm_id = str(getattr(weather_item, "id", "")).strip()
+        icon = str(getattr(weather_item, "icon", "")).strip()
 
-    if variant:
-        return f"wi-{variant}-{main}.svg"
-    else:
-        return f"wi-{main}.svg"
+    key = (
+        f"{owm_id}{icon[-1]}"
+        if owm_id in {"800", "801", "802", "803", "804"}
+        else owm_id
+    )
+    return OWM_ICON_MAP.get(key, "wi-na.svg")
 
 
 def _one_hour_amt(mapping: Mapping[str, Any] | None) -> float:
@@ -137,9 +144,9 @@ def hourly_precip(
     return f"{amount:.2f}"
 
 
-def moon_phase_icon(phase: float) -> str:
+def get_moon_phase_icon_filename(phase: float) -> str:
     """
-    Convert OpenWeather moon_phase value (0-1) to Weather Icons class name.
+    Convert OpenWeather moon_phase value (0-1) to Weather Icons moon phase file name.
     Uses the "alt" moon icon variants with circular outlines.
 
     OpenWeather API provides moon phase as a single float from 0-1:
@@ -179,4 +186,4 @@ def moon_phase_icon(phase: float) -> str:
         "wi-moon-alt-waning-crescent-6",  # 0.99
     ]
     index = min(int(phase * 28), 27)  # Ensure index is within bounds
-    return phases[index]
+    return f"{phases[index]}.svg"

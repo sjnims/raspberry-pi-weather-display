@@ -29,6 +29,7 @@ from rpiweather.weather.api import (
     fetch_weather,
     WeatherCfgDict,
 )
+from rpiweather.weather.helpers import load_icon_mapping
 from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
 from rpiweather.remote import should_stay_awake
 from rpiweather.power import graceful_shutdown, schedule_wakeup
@@ -112,6 +113,7 @@ def cycle(
     full_refresh: bool,
     soc: int,
     is_charging: bool,
+    battery_warning: bool,
 ) -> bool:
     try:
         weather = fetch_weather(cfg)  # type: ignore[arg-type]
@@ -129,16 +131,30 @@ def cycle(
                 )
         return False
 
+    # Provide a strictly-typed url_for for templates
+    def url_for(endpoint: str, filename: str = "") -> str:
+        if endpoint == "static":
+            return f"/static/{filename}"
+        raise ValueError(f"Unsupported endpoint: {endpoint}")
+
     ctx: Dict[str, Any] = build_context(cast(WeatherCfgDict, cfg), weather)
     ctx["battery_soc"] = soc
     ctx["is_charging"] = is_charging
+    ctx["battery_warning"] = battery_warning
+    ctx["url_for"] = url_for
 
     html = TEMPLATE.render(**ctx)  # type: ignore
-    with tempfile.TemporaryDirectory() as td:
-        png = Path(td) / "dash.png"
-        html_to_png(html, png, preview=preview)
-        if not preview:
-            display_png(png, mode_override=0 if full_refresh else 2)
+    out_dir = Path("preview")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    html_path = out_dir / "dash-preview.html"
+    png_path = out_dir / "dash.png"
+
+    html_path.write_text(html, encoding="utf-8")
+    html_to_png(html, png_path, preview=preview)
+
+    if not preview:
+        display_png(png_path, mode_override=0 if full_refresh else 2)
     return True
 
 
@@ -161,6 +177,7 @@ def run(
     )
 
     cfg_obj: WeatherConfig = load_config(config)
+    load_icon_mapping()
     cfg: WeatherCfg = cast(WeatherCfg, cfg_obj.model_dump())  # typed dict
 
     # precedence: CLI flag ▸ YAML ▸ default
@@ -196,14 +213,30 @@ def run(
         full_refresh = datetime.now() - last_full_refresh > FULL_REFRESH_INTERVAL
         soc = get_soc(pijuice)
         is_charging: bool = False
+        battery_temp: Optional[float] = None
+        battery_warning = False
         if pijuice:
             try:
                 stat = pijuice.status.GetStatus()["data"]  # type: ignore[attr-defined]
                 is_charging = cast(bool, stat.get("powerInput") == "GOOD")  # type: ignore[attr-defined]
+                battery_temp = None
+                battery_warning = False
+                try:
+                    battery_temp_resp = pijuice.status.GetBatteryTemperature()  # type: ignore[attr-defined]
+                    battery_temp = cast(Dict[str, Any], battery_temp_resp).get("data")
+                    if battery_temp is not None:
+                        if is_charging and (battery_temp < 0 or battery_temp > 45):
+                            battery_warning = True
+                        elif not is_charging and (
+                            battery_temp < -20 or battery_temp > 60
+                        ):
+                            battery_warning = True
+                except Exception:
+                    pass
             except Exception:
                 pass
 
-        ok = cycle(cfg, preview, full_refresh, soc, is_charging)
+        ok = cycle(cfg, preview, full_refresh, soc, is_charging, battery_warning)
         if ok:
             error_streak = 0
             if full_refresh:

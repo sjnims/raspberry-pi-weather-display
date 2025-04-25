@@ -35,7 +35,7 @@
     {% for h in hourly %}
       <td>
         {{ h.wind_speed | round(0) }} {{ units_wind }}<br>
-        <img src="{{ url_for('static', filename='icons/wi-wind.svg') }}"
+        <img src="{{ url_for('static', filename='icons/wi-wind-deg.svg') }}"
              alt="Wind direction"
              class="tiny"
              style="transform: rotate({{ h.wind_deg + 180 }}deg);">

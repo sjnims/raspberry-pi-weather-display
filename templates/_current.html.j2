@@ -1,16 +1,18 @@
-{% macro battery_icon(soc, charging) -%}
-{% if charging -%}
-static/icons/battery_charging.svg
-{%- elif soc > 75 -%}
-static/icons/battery_full.svg
-{%- elif soc > 50 -%}
-static/icons/battery_75.svg
-{%- elif soc > 25 -%}
-static/icons/battery_50.svg
+{% macro battery_icon(soc, charging, warning) -%}
+{% if warning -%}
+static/icons/battery-warning-light.svg
+{%- elif charging -%}
+static/icons/battery-charging-light.svg
+{%- elif soc > 90 -%}
+static/icons/battery-full-light.svg
+{%- elif soc > 60 -%}
+static/icons/battery-high-light.svg
+{%- elif soc > 30 -%}
+static/icons/battery-medium-light.svg
 {%- elif soc > 10 -%}
-static/icons/battery_25.svg
+static/icons/battery-low-light.svg
 {%- else -%}
-static/icons/battery_empty.svg
+static/icons/battery-empty-light.svg
 {%- endif %}
 {%- endmacro %}
 
@@ -18,7 +20,7 @@ static/icons/battery_empty.svg
   <span>{{ date }} — {{ city }}</span>
 
   <span class="right">
-    <img src="{{ battery_icon(battery_soc, is_charging) }}"
+    <img src="{{ battery_icon(battery_soc, is_charging, battery_warning) }}"
          class="battery-icon {% if is_charging %}charging{% endif %}"
          alt="Battery: {{ battery_soc }}%">
     {{ battery_soc }}%
@@ -50,7 +52,7 @@ static/icons/battery_empty.svg
       <img src="{{ url_for('static', filename='icons/wi-wind-beaufort-' ~ bft ~ '.svg') }}"
            alt="Wind force (BFT)"
            class="icon-md">
-      <img src="{{ url_for('static', filename='icons/wi-wind.svg') }}"
+      <img src="{{ url_for('static', filename='icons/wi-wind-deg.svg') }}"
            alt="Wind direction"
            class="icon-md"
            style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);">
