@@ -40,8 +40,44 @@
       <td>
         <img src="{{ url_for('static', filename='icons/' ~ (d.moon_phase | moon_phase_icon)) }}"
              alt="Moon phase"
-             class="icon-md">
+             class="icon-tiny">
       </td>
+    {% endfor %}
+  </tr>
+
+  {# ─── sunrise icon ─── #}
+  <tr>
+    {% for d in daily %}
+      <td>
+        <img src="{{ url_for('static', filename='icons/wi-sunrise.svg') }}"
+             alt="Sunrise"
+             class="icon-tiny">
+      </td>
+    {% endfor %}
+  </tr>
+
+  {# ─── sunrise time ─── #}
+  <tr>
+    {% for d in daily %}
+      <td>{{ d.sunrise_local }}</td>
+    {% endfor %}
+  </tr>
+
+  {# ─── sunset icon ─── #}
+  <tr>
+    {% for d in daily %}
+      <td>
+        <img src="{{ url_for('static', filename='icons/wi-sunset.svg') }}"
+             alt="Sunset"
+             class="icon-tiny">
+      </td>
+    {% endfor %}
+  </tr>
+
+  {# ─── sunset time ─── #}
+  <tr>
+    {% for d in daily %}
+      <td>{{ d.sunset_local }}</td>
     {% endfor %}
   </tr>
 </table>

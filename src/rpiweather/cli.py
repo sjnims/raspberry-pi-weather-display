@@ -7,7 +7,8 @@ import tempfile
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional, Protocol, TypedDict, cast
+from typing import Any, Dict, Optional, Protocol, cast
+from zoneinfo import ZoneInfo
 
 # ── third‑party ──────────────────────────────────────────────────────────────
 import typer
@@ -27,7 +28,6 @@ from rpiweather.weather.api import (
     WeatherAPIError,
     build_context,
     fetch_weather,
-    WeatherCfgDict,
 )
 from rpiweather.weather.helpers import load_icon_mapping
 from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
@@ -50,15 +50,6 @@ class PiJuiceLike(Protocol):
     def GetChargeLevel(self) -> Dict[str, int]: ...
     def GetTime(self) -> Dict[str, Dict[str, int]]: ...
     def SetTime(self, time_dict: Dict[str, int]) -> Dict[str, int]: ...
-
-
-# legacy TypedDict kept for helper signatures
-class WeatherCfg(TypedDict):
-    api_key: str
-    latitude: float
-    longitude: float
-    units: str
-    refresh_minutes: int
 
 
 # ───────────────────────── helper functions ─────────────────────────────────
@@ -108,7 +99,7 @@ def calculate_sleep_minutes(base_minutes: int, soc: int) -> int:
 
 # ───────────────────────── dashboard cycle ──────────────────────────────────
 def cycle(
-    cfg: WeatherCfg,
+    cfg_obj: WeatherConfig,
     preview: bool,
     full_refresh: bool,
     soc: int,
@@ -116,7 +107,7 @@ def cycle(
     battery_warning: bool,
 ) -> bool:
     try:
-        weather = fetch_weather(cfg)  # type: ignore[arg-type]
+        weather = fetch_weather(cfg_obj)
     except WeatherAPIError as err:
         logger.error("OpenWeather error (%s): %s", err.code, err.message)
         if not preview:
@@ -131,13 +122,27 @@ def cycle(
                 )
         return False
 
+    local_tz = ZoneInfo(cfg_obj.timezone)
+    time_fmt = cfg_obj.time_format
+
+    for d in weather.daily:
+        d.sunrise_local = d.sunrise.astimezone(local_tz).strftime(time_fmt)
+        d.sunset_local = d.sunset.astimezone(local_tz).strftime(time_fmt)
+
+    weather.current.sunrise_local = weather.current.sunrise.astimezone(
+        local_tz
+    ).strftime(time_fmt)
+    weather.current.sunset_local = weather.current.sunset.astimezone(local_tz).strftime(
+        time_fmt
+    )
+
     # Provide a strictly-typed url_for for templates
     def url_for(endpoint: str, filename: str = "") -> str:
         if endpoint == "static":
             return f"/static/{filename}"
         raise ValueError(f"Unsupported endpoint: {endpoint}")
 
-    ctx: Dict[str, Any] = build_context(cast(WeatherCfgDict, cfg), weather)
+    ctx: Dict[str, Any] = build_context(cfg_obj, weather)
     ctx["battery_soc"] = soc
     ctx["is_charging"] = is_charging
     ctx["battery_warning"] = battery_warning
@@ -178,12 +183,11 @@ def run(
 
     cfg_obj: WeatherConfig = load_config(config)
     load_icon_mapping()
-    cfg: WeatherCfg = cast(WeatherCfg, cfg_obj.model_dump())  # typed dict
 
     # precedence: CLI flag ▸ YAML ▸ default
     effective_url = stay_awake_url or cfg_obj.stay_awake_url or DEFAULT_STAY_AWAKE_URL
 
-    base_minutes = cfg.get("refresh_minutes", 120)
+    base_minutes = cfg_obj.refresh_minutes
 
     pijuice = get_pijuice()
     ensure_rtc_synced(pijuice)
@@ -236,7 +240,7 @@ def run(
             except Exception:
                 pass
 
-        ok = cycle(cfg, preview, full_refresh, soc, is_charging, battery_warning)
+        ok = cycle(cfg_obj, preview, full_refresh, soc, is_charging, battery_warning)
         if ok:
             error_streak = 0
             if full_refresh:

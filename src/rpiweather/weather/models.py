@@ -6,9 +6,9 @@ Only the fields used by the dashboard are modelled for now; add more as needed.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 # ─────────────────────────── primitives ──────────────────────────────────────
@@ -42,6 +42,10 @@ class Current(BaseModel):
     uvi: float | None = None
     visibility: int | None = None
     weather: List[WeatherCondition]
+    sunrise_local: Optional[str] = None
+    sunset_local: Optional[str] = None
+
+    model_config = ConfigDict(extra="allow")
 
     # convert POSIX seconds → UTC datetime
     @field_validator("dt", "sunrise", "sunset", mode="before")
@@ -81,6 +85,10 @@ class Daily(BaseModel):
     uvi: float | None = None
     moon_phase: float | None = None
     weather: List[WeatherCondition]
+    sunrise_local: Optional[str] = None
+    sunset_local: Optional[str] = None
+
+    model_config = ConfigDict(extra="allow")
 
     @field_validator("dt", "sunrise", "sunset", mode="before")
     @classmethod

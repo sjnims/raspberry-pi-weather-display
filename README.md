@@ -125,7 +125,8 @@ city: Smyrna, GA
 api_key: "YOUR_OPENWEATHER_KEY"
 
 units: imperial        # or metric
-time_24h: false        # true for 24‑hour clock
+timezone: "America/New_York" # IANA timezone name
+time_format: "%-I:%M %p"       # e.g. 6:04 AM
 
 hourly_count: 8        # forecast hours to display
 daily_count: 5         # forecast days
@@ -136,7 +137,8 @@ refresh_minutes: 120   # base interval; scales with SoC: 1× above 50%, 4× at 0
 * `lat` and `lon` are your location's latitude and longitude (see [OpenWeather](https://openweathermap.org/) for details).
 * `api_key` is your OpenWeather API key (see [OpenWeather](https://home.openweathermap.org/users/sign_up) for details).
 * `units` is either `imperial` or `metric`.
-* `time_24h` is either `true` or `false` (24‑hour clock).
+* `timezone` is your IANA timezone name (see [tz database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for details).
+* `time_format` is the format for displaying time (see [Python strftime](https://strftime.org/) for details).
 * `hourly_count` is the number of hourly forecast hours to display (default **8**).
 * `daily_count` is the number of daily forecast days to display (default **5**).
 * `city` is the name of your city (for display purposes only).

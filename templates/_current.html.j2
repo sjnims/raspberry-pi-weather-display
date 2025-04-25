@@ -30,7 +30,7 @@ static/icons/battery-empty-light.svg
 <section class="current">
   <img src="{{ url_for('static', filename='icons/' ~ (current.weather[0] | weather_icon)) }}"
        alt="Weather icon"
-       class="icon-lg">
+       class="weather-icon-lg">
   <div class="temps">
     <div class="temp-now">{{ current.temp | round | int }}{{ units_temp }}</div>
     <div class="feels-like">
@@ -60,8 +60,8 @@ static/icons/battery-empty-light.svg
   </div>
 
   <div class="sun">
-    <div>Sunrise {{ sunrise }}</div>
-    <div>Sunset {{ sunset }}</div>
+    <div>Sunrise {{ current.sunrise_local }}</div>
+    <div>Sunset {{ current.sunset_local }}</div>
     <div>Daylight {{ daylight }}</div>
     <div>
       {% if uvi_occurred %}

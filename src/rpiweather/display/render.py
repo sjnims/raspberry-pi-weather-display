@@ -9,7 +9,7 @@ import zoneinfo
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
+from jinja2 import Environment, FileSystemLoader, Template, Undefined, select_autoescape
 
 from rpiweather.weather.helpers import (
     deg_to_cardinal,
@@ -56,6 +56,8 @@ def ts_to_local(ts: int) -> datetime:
 
 def dt_format(d: datetime, fmt: str = "%-I %p") -> str:
     """strftime wrapper usable as a Jinja filter."""
+    if isinstance(fmt, Undefined):
+        fmt = "%-I %p"
     return d.strftime(fmt)
 
 

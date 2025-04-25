@@ -18,7 +18,7 @@
       <td>
         <img src="{{ url_for('static', filename='icons/' ~ (h.weather[0] | weather_icon)) }}"
              alt="Hourly icon"
-             class="icon-md">
+             class="icon-sm">
       </td>
     {% endfor %}
   </tr>
@@ -37,7 +37,7 @@
         {{ h.wind_speed | round(0) }} {{ units_wind }}<br>
         <img src="{{ url_for('static', filename='icons/wi-wind-deg.svg') }}"
              alt="Wind direction"
-             class="tiny"
+             class="icon-tiny"
              style="transform: rotate({{ h.wind_deg + 180 }}deg);">
       </td>
     {% endfor %}

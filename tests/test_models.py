@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 import pytest
-from rpiweather.weather.api import WeatherCfgDict
+from typing import Any
+from pydantic import ValidationError
 
 from rpiweather.weather.api import build_context
 from rpiweather.weather.models import WeatherResponse
-from typing import Any
-from pydantic import ValidationError
+from rpiweather.config import WeatherConfig
 
 # Path to fixture JSON
 FIXTURE = Path(__file__).parent / "data" / "onecall_sample.json"
@@ -20,6 +20,25 @@ SAMPLE_JSON = FIXTURE.read_text(encoding="utf-8")
 def weather_response() -> WeatherResponse:
     """Fixture for a WeatherResponse instance."""
     return WeatherResponse.model_validate_json(SAMPLE_JSON)
+
+
+@pytest.fixture
+def dummy_config(weather_response: WeatherResponse) -> WeatherConfig:
+    """Fixture for a dummy WeatherConfig instance."""
+    return WeatherConfig(
+        lat=weather_response.lat,
+        lon=weather_response.lon,
+        api_key="DUMMYKEY1234567890",
+        city="Testville",
+        units="imperial",
+        refresh_minutes=120,
+        hourly_count=6,
+        daily_count=3,
+        poweroff_soc=10,
+        time_format="%-I:%M %p",
+        timezone="America/New_York",
+        stay_awake_url="",
+    )
 
 
 # Fixture for malformed JSON (missing required "lat" field)
@@ -53,24 +72,13 @@ def test_weather_response_validation_error(bad_weather_json: str) -> None:
         WeatherResponse.model_validate_json(bad_weather_json)
 
 
-def test_build_context_basic(weather_response: WeatherResponse) -> None:
+def test_build_context_basic(
+    weather_response: WeatherResponse, dummy_config: WeatherConfig
+) -> None:
     """build_context returns expected keys for template rendering."""
     wx = weather_response
 
-    cfg: WeatherCfgDict = {
-        "lat": wx.lat,
-        "lon": wx.lon,
-        "api_key": "DUMMYKEY1234567890",
-        "refresh_minutes": 120,
-        "poweroff_soc": 10,
-        "city": "Testville",
-        "units": "imperial",
-        "time_24h": False,
-        "hourly_count": 6,
-        "daily_count": 3,
-    }
-
-    ctx = build_context(cfg, wx)
+    ctx = build_context(dummy_config, wx)
     assert "date" in ctx  # basic sanity check so ctx is used
 
 
@@ -88,21 +96,8 @@ def test_build_context_basic(weather_response: WeatherResponse) -> None:
     ],
 )
 def test_build_context_contains_key(
-    weather_response: WeatherResponse, ctx_key: str
+    weather_response: WeatherResponse, dummy_config: WeatherConfig, ctx_key: str
 ) -> None:
     """Each expected key should be present in the build_context output."""
-    cfg: WeatherCfgDict = {
-        "lat": weather_response.lat,
-        "lon": weather_response.lon,
-        "api_key": "DUMMYKEY1234567890",
-        "refresh_minutes": 120,
-        "poweroff_soc": 10,
-        "city": "Testville",
-        "units": "imperial",
-        "time_24h": False,
-        "hourly_count": 6,
-        "daily_count": 3,
-    }
-
-    ctx = build_context(cfg, weather_response)
+    ctx = build_context(dummy_config, weather_response)
     assert ctx_key in ctx

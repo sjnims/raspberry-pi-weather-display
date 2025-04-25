@@ -25,7 +25,6 @@ body {
   border-bottom: 1px solid #000;
   padding: 6px 16px;
 }
-
 .current {
   display: flex;
   align-items: center;
@@ -34,10 +33,25 @@ body {
   margin: 32px 0;
 }
 
+/* ───── Icons ───── */
+.icon-tiny {
+  height: 24px;
+  width: auto;
+}
+.icon-sm {
+  height: 48px;
+  width: auto;
+}
+.icon-md {
+  height: 96px;
+  width: auto;
+}
 .icon-lg {
-  font-size: 160px;
+  height: 160px;
+  width: auto;
 }
 
+/* ───── Current weather ───── */
 .temp-now {
   font-size: 160px;
 }
@@ -53,9 +67,9 @@ body {
   text-align: right;
 }
 
-.tiny {
+/* .tiny {
   font-size: 24px;
-}
+} */
 
 /* ───── Hourly & daily tables ───── */
 table {
@@ -76,30 +90,4 @@ td {
   display: flex;
   gap: 12px;
   margin-top: 6px;
-}
-
-.extras .wi {
-  font-size: 36px;
-}
-
-.wi-wind-optimized.tiny {
-  font-size: 0.8em;
-  display: inline-block;
-  margin-top: 0.2em;
-}
-
-/* Battery icon styles */
-.battery-icon {
-  height: 30px;
-  width: auto;
-  vertical-align: middle;
-  margin-left: 8px;
-}
-
-.battery-icon.low {
-  filter: opacity(0.5);
-}
-
-.battery-icon.charging {
-  filter: brightness(1.2);
 }

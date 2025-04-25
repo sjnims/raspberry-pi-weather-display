@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Final, Any, Dict, TypedDict, Callable, cast
+from typing import Final, Any, Dict, Callable, cast
 from functools import partial
 import json
 
@@ -16,6 +16,8 @@ from .helpers import (
     hourly_precip,
     get_moon_phase_icon_filename,
 )
+
+from rpiweather.config import WeatherConfig
 
 API_URL: Final = "https://api.openweathermap.org/data/3.0/onecall"
 
@@ -33,29 +35,14 @@ HTTP_ERROR_MAP: Final = {
 }
 
 
-class WeatherCfgDict(TypedDict):
-    """Loose config mapping used until full Pydantic adoption (phase 6.1)."""
-
-    lat: float
-    lon: float
-    api_key: str
-    units: str
-    city: str
-    refresh_minutes: int
-    hourly_count: int
-    daily_count: int
-    time_24h: bool
-    poweroff_soc: int
-
-
-def fetch_weather(cfg: WeatherCfgDict) -> WeatherResponse:
+def fetch_weather(cfg: WeatherConfig) -> WeatherResponse:
     """Retrieve weather and air quality data."""
     # Get the main weather data
     params = {
-        "lat": cfg["lat"],
-        "lon": cfg["lon"],
-        "appid": cfg["api_key"],
-        "units": cfg.get("units", "imperial"),
+        "lat": cfg.lat,
+        "lon": cfg.lon,
+        "appid": cfg.api_key,
+        "units": getattr(cfg, "units", "imperial"),
         "exclude": "minutely,alerts",
     }
 
@@ -87,14 +74,14 @@ def fetch_weather(cfg: WeatherCfgDict) -> WeatherResponse:
     return WeatherResponse.model_validate(merged_raw)
 
 
-def fetch_air_quality(cfg: WeatherCfgDict) -> Dict[str, Any]:
+def fetch_air_quality(cfg: WeatherConfig) -> dict[str, Any]:
     """Retrieve air quality data from OpenWeather API."""
     AQI_URL = "https://api.openweathermap.org/data/2.5/air_pollution"
 
     params = {
-        "lat": cfg["lat"],
-        "lon": cfg["lon"],
-        "appid": cfg["api_key"],
+        "lat": cfg.lat,
+        "lon": cfg.lon,
+        "appid": cfg.api_key,
     }
 
     try:
@@ -122,7 +109,7 @@ def fetch_air_quality(cfg: WeatherCfgDict) -> Dict[str, Any]:
         return {"aqi": "N/A"}
 
 
-def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, Any]:
+def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any]:
     """Transform raw API JSON into template-friendly context."""
     now = datetime.now(timezone.utc).astimezone()
     today = now.date()
@@ -159,8 +146,6 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
         max_uvi_time = now
 
     # cache once to avoid repeated dict look‑ups
-    use_24h: bool = cfg.get("time_24h", False)
-    time_fmt = "%-I %p" if not use_24h else "%-H:%M"
     is_future = max_uvi_time > now
 
     # ── Air‑quality & moon phase ─────────────────────────────────────────────
@@ -169,7 +154,7 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
 
     # ── Wind helpers ─────────────────────────────────────────────────────────
     speed = weather.current.wind_speed or 0.0
-    if cfg["units"] != "imperial":
+    if cfg.units != "imperial":
         speed *= 2.23694  # m/s → mph for Beaufort helper
 
     # Round wind direction to the nearest 10° for smoother icon rotation
@@ -188,26 +173,25 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
 
     future_daily = [
         d for d in weather.daily if d.dt.astimezone(loc_tz).date() > tomorrow_local
-    ][: cfg.get("daily_count", 5)]
+    ][: cfg.daily_count]
 
     return {
         # meta
         "date": now.strftime("%A, %B %d %Y"),
-        "city": cfg["city"],
-        "last_refresh": now.strftime("%-I:%M %p %Z" if not use_24h else "%-H:%M %Z"),
-        "units_temp": "°F" if cfg["units"] == "imperial" else "°C",
-        "units_wind": "mph" if cfg["units"] == "imperial" else "m/s",
-        "units_precip": "in" if cfg["units"] == "imperial" else "mm",
-        "time_fmt": time_fmt,
+        "city": cfg.city,
+        "last_refresh": now.strftime(cfg.time_format + " %Z"),
+        "units_temp": "°F" if cfg.units == "imperial" else "°C",
+        "units_wind": "mph" if cfg.units == "imperial" else "m/s",
+        "units_precip": "in" if cfg.units == "imperial" else "mm",
         # current conditions
         "current": weather.current,
         # sun
-        "sunrise": sunrise_dt.strftime("%-I:%M %p" if not use_24h else "%-H:%M"),
-        "sunset": sunset_dt.strftime("%-I:%M %p" if not use_24h else "%-H:%M"),
+        "sunrise": sunrise_dt.strftime(cfg.time_format),
+        "sunset": sunset_dt.strftime(cfg.time_format),
         "daylight": f"{daylight_hours}h {daylight_minutes}m",
         # UV
         "uvi_max": f"{max_uvi_value:.1f}",
-        "uvi_time": max_uvi_time.strftime(time_fmt),
+        "uvi_time": max_uvi_time.strftime(cfg.time_format),
         "uvi_occurred": not is_future,
         # AQI & moon
         "aqi": aqi,
@@ -217,7 +201,7 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
         # forecast slices
         # --- Hourly list: next N hours starting *after now* in local time -----
         "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][
-            : cfg.get("hourly_count", 8)
+            : cfg.hourly_count
         ],
         "daily": future_daily,
         # helper filters
@@ -227,7 +211,7 @@ def build_context(cfg: WeatherCfgDict, weather: WeatherResponse) -> dict[str, An
         # bind metric/imperial choice once so templates stay simple
         "hourly_precip": cast(
             Callable[[Any], str],
-            partial(hourly_precip, imperial=(cfg["units"] == "imperial")),
+            partial(hourly_precip, imperial=(cfg.units == "imperial")),
         ),
         "moon_phase_icon": get_moon_phase_icon_filename,
     }
