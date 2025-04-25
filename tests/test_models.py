@@ -35,7 +35,8 @@ def dummy_config(weather_response: WeatherResponse) -> WeatherConfig:
         hourly_count=6,
         daily_count=3,
         poweroff_soc=10,
-        time_format="%-I:%M %p",
+        time_format_general="%-I:%M %p",
+        time_format_hourly="%-I %p",
         timezone="America/New_York",
         stay_awake_url="",
     )

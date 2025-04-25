@@ -176,7 +176,7 @@ def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any
 
     # Precompute local_time strings for each hourly forecast object
     for h in weather.hourly:
-        h.local_time = h.dt.astimezone().strftime(cfg.time_format)
+        h.local_time = h.dt.astimezone().strftime(cfg.time_format_hourly)
 
     # Precompute weekday_short string for each daily forecast object
     for d in weather.daily:
@@ -186,19 +186,19 @@ def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any
         # meta
         "date": now.strftime("%A, %B %d %Y"),
         "city": cfg.city,
-        "last_refresh": now.strftime(cfg.time_format + " %Z"),
+        "last_refresh": now.strftime(cfg.time_format_general + " %Z"),
         "units_temp": "°F" if cfg.units == "imperial" else "°C",
         "units_wind": "mph" if cfg.units == "imperial" else "m/s",
         "units_precip": "in" if cfg.units == "imperial" else "mm",
         # current conditions
         "current": weather.current,
         # sun
-        "sunrise": sunrise_dt.strftime(cfg.time_format),
-        "sunset": sunset_dt.strftime(cfg.time_format),
+        "sunrise": sunrise_dt.strftime(cfg.time_format_general),
+        "sunset": sunset_dt.strftime(cfg.time_format_general),
         "daylight": f"{daylight_hours}h {daylight_minutes}m",
         # UV
         "uvi_max": f"{max_uvi_value:.1f}",
-        "uvi_time": max_uvi_time.strftime(cfg.time_format),
+        "uvi_time": max_uvi_time.strftime(cfg.time_format_general),
         "uvi_occurred": not is_future,
         # AQI & moon
         "aqi": aqi,

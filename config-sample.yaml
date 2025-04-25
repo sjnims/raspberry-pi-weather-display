@@ -7,7 +7,8 @@ api_key: "YOUR_OPENWEATHER_KEY"
 # Units & formatting
 units: imperial        # imperial or metric
 timezone: "America/New_York"  # e.g. America/New_York
-time_format: "%-I:%M %p"       # e.g. 6:04 AM
+time_format_general: "%-I:%M %p"  # e.g. 6:04 AM
+time_format_hourly: "%-I %p"      # e.g. 6 AM
 
 # How much forecast data to show
 hourly_count: 8        # number of hourly entries in the strip (1–48)

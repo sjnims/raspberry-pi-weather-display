@@ -110,7 +110,7 @@ def cycle(
         return False
 
     local_tz = ZoneInfo(cfg_obj.timezone)
-    time_fmt = cfg_obj.time_format
+    time_fmt = cfg_obj.time_format_general
 
     for d in weather.daily:
         d.sunrise_local = d.sunrise.astimezone(local_tz).strftime(time_fmt)

@@ -42,8 +42,11 @@ class WeatherConfig(BaseModel):
         description="Battery % threshold below which the Pi shuts down "
         "instead of sleeping",
     )
-    time_format: str = Field(
-        "%-I:%M %p", description="Time display format (e.g. 6:04 AM)"
+    time_format_general: str = Field(
+        "%-I:%M %p", description="General time display format (e.g. 6:04 AM)"
+    )
+    time_format_hourly: str = Field(
+        "%-I %p", description="Hourly forecast time display format (e.g. 6 AM)"
     )
     timezone: str = Field(
         "America/New_York", description="Local timezone for display formatting"
