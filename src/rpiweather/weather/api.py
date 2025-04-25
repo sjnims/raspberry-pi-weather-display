@@ -67,9 +67,13 @@ def fetch_weather(cfg: WeatherConfig) -> WeatherResponse:
     # Merge AQI data into the raw dict before validation
     merged_raw: Dict[str, Any] = json.loads(weather_json)
     try:
-        merged_raw["air_quality"] = fetch_air_quality(cfg)
+        aqi_raw = fetch_air_quality(cfg)
+        merged_raw["air_quality"] = {
+            "aqi": aqi_raw.get("aqi", "N/A"),
+            "aqi_value": aqi_raw.get("aqi_value", 0),
+        }
     except Exception:
-        merged_raw["air_quality"] = {"aqi": "N/A"}
+        merged_raw["air_quality"] = {"aqi": "N/A", "aqi_value": 0}
 
     # Validate and convert to Pydantic model
     return WeatherResponse.model_validate(merged_raw)

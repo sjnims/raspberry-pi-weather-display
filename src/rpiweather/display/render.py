@@ -9,6 +9,7 @@ import subprocess
 import zoneinfo
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, Template, Undefined, select_autoescape
 
@@ -17,6 +18,8 @@ from rpiweather.weather.helpers import (
     get_moon_phase_icon_filename,
     get_moon_phase_label,
     get_weather_icon_filename,
+    hourly_precip,
+    beaufort_from_speed,
 )
 from rpiweather.weather.api import WeatherResponse
 from rpiweather.config import WeatherConfig
@@ -121,8 +124,11 @@ def build_dashboard_context(
     battery_warning: bool,
 ) -> dict[str, Any]:
     """Build the dashboard template context."""
-    now = datetime.now()
+
+    now = datetime.now(ZoneInfo(cfg.timezone))
     today_local = now.date()
+
+    max_uvi_time = None
 
     uvi_slice = [
         (h.dt, h.uvi)
@@ -144,28 +150,44 @@ def build_dashboard_context(
 
     moon_phase = weather.daily[0].moon_phase if weather.daily else 0.0
 
+    hourly = [h for h in weather.hourly if h.dt.astimezone() > now][: cfg.hourly_count]
+    for h in hourly:
+        h.local_time = h.dt.astimezone().strftime(cfg.time_format_hourly)
+
+    daily = [d for d in weather.daily if d.dt.astimezone().date() > today_local][
+        : cfg.daily_count
+    ]
+
+    for d in daily:
+        d.weekday_short = d.dt.astimezone().strftime("%a")
+
     ctx = {
         "now": now,
         "date": now.strftime("%A, %B %-d"),
         "last_refresh": now.strftime(cfg.time_format_general + " %Z"),
         "soc": soc,
+        "battery_soc": soc,
         "battery_warning": battery_warning,
         "is_charging": is_charging,
         "units_temp": "°C" if cfg.units == "metric" else "°F",
-        "units_speed": "m/s" if cfg.units == "metric" else "mph",
+        "units_wind": "m/s" if cfg.units == "metric" else "mph",
         "units_pressure": "hPa" if cfg.units == "metric" else "inHg",
-        "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][
-            : cfg.hourly_count
-        ],
-        "daily": [d for d in weather.daily if d.dt.astimezone().date() >= today_local][
-            : cfg.daily_count
-        ],
+        "hourly": hourly,
+        "daily": daily,
         "sunrise": sunrise_str,
         "sunset": sunset_str,
         "moon_phase": moon_phase,
         "moon_phase_icon": get_moon_phase_icon_filename,
         "moon_phase_label": get_moon_phase_label,
         "uvi_time": max_uvi_time_str,
+        "current": weather.current,
+        "hourly_precip": hourly_precip,
+        "city": cfg.city,
+        "daylight": f"{(sunset_dt - sunrise_dt).seconds // 3600}h {(sunset_dt - sunrise_dt).seconds % 60}m",
+        "uvi_max": max((uvi[1] for uvi in uvi_slice), default=0),
+        "uvi_occurred": max_uvi_time is not None and now > max_uvi_time,
+        "bft": beaufort_from_speed(weather.current.wind_speed),
+        "aqi": weather.air_quality.aqi if weather.air_quality else "N/A",
     }
 
     return ctx

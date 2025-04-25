@@ -23,10 +23,10 @@ from rpiweather.display.render import (
     FULL_REFRESH_INTERVAL,
     TEMPLATE,
     html_to_png,
+    build_dashboard_context,
 )
 from rpiweather.weather.api import (
     WeatherAPIError,
-    build_context,
     fetch_weather,
 )
 from rpiweather.weather.helpers import (
@@ -130,10 +130,7 @@ def cycle(
             return f"/static/{filename}"
         raise ValueError(f"Unsupported endpoint: {endpoint}")
 
-    ctx: Dict[str, Any] = build_context(cfg_obj, weather)
-    ctx["battery_soc"] = soc
-    ctx["is_charging"] = is_charging
-    ctx["battery_warning"] = battery_warning
+    ctx = build_dashboard_context(cfg_obj, weather, soc, is_charging, battery_warning)
     ctx["url_for"] = url_for
 
     html = TEMPLATE.render(**ctx)  # type: ignore

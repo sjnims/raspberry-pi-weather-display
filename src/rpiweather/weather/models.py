@@ -10,6 +10,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
+from rpiweather.weather.air_quality import AirQuality
+
 
 # ─────────────────────────── primitives ──────────────────────────────────────
 
@@ -109,3 +111,4 @@ class WeatherResponse(BaseModel):
     current: Current
     hourly: List[Hourly]
     daily: List[Daily]
+    air_quality: Optional[AirQuality] = None
