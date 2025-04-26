@@ -4,87 +4,34 @@
                          owm_icon (helper), moon_phase_icon (helper)
    --------------------------------------------------------------------------- #}
 
-<table class="daily">
-  {# ─── header: weekday short name ─── #}
-  <tr>
-    {% for d in daily %}
-      <th>{{ d.weekday_short }}</th>
-    {% endfor %}
-  </tr>
-
-  {# ─── weather icon ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>
-        <img src="{{ url_for('static', filename='icons/' ~ (d.weather[0] | weather_icon)) }}"
-             alt="Forecast icon"
-             class="icon-md">
-      </td>
-    {% endfor %}
-  </tr>
-
-  {# ─── min / max temps ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>
+<div class="forecast">
+  {% for d in daily %}
+    <div class="forecast-block card">
+      <div class="day-label">{{ d.weekday_short }}</div>
+      <img class="icon-md"
+           src="{{ url_for('static', filename='icons/' ~ (d.weather[0] | weather_icon)) }}"
+           alt="Forecast icon">
+      <div class="temp">
         {{ d.temp.min | round | int }}{{ units_temp }}
         /
         {{ d.temp.max | round | int }}{{ units_temp }}
-      </td>
-    {% endfor %}
-  </tr>
-
-  {# ─── moon-phase icon ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>
-        <img src="{{ url_for('static', filename='icons/' ~ (d.moon_phase | moon_phase_icon)) }}"
-             alt="Moon phase"
-             class="icon-tiny">
-      </td>
-    {% endfor %}
-  </tr>
-
-  {# ─── moon-phase label ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>{{ d.moon_phase | moon_phase_label }}</td>
-    {% endfor %}
-  </tr>
-
-  {# ─── sunrise icon ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>
-        <img src="{{ url_for('static', filename='icons/wi-sunrise.svg') }}"
-             alt="Sunrise"
-             class="icon-tiny">
-      </td>
-    {% endfor %}
-  </tr>
-
-  {# ─── sunrise time ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>{{ d.sunrise_local }}</td>
-    {% endfor %}
-  </tr>
-
-  {# ─── sunset icon ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>
-        <img src="{{ url_for('static', filename='icons/wi-sunset.svg') }}"
-             alt="Sunset"
-             class="icon-tiny">
-      </td>
-    {% endfor %}
-  </tr>
-
-  {# ─── sunset time ─── #}
-  <tr>
-    {% for d in daily %}
-      <td>{{ d.sunset_local }}</td>
-    {% endfor %}
-  </tr>
-</table>
+      </div>
+      <img class="icon-tiny"
+           src="{{ url_for('static', filename='icons/' ~ (d.moon_phase | moon_phase_icon)) }}"
+           alt="Moon phase">
+      <div class="moon-label">{{ d.moon_phase | moon_phase_label }}</div>
+      <div class="sun-details">
+        <img class="icon-tiny"
+             src="{{ url_for('static', filename='icons/wi-sunrise.svg') }}"
+             alt="Sunrise">
+        <span>{{ d.sunrise_local }}</span>
+      </div>
+      <div class="sun-details">
+        <img class="icon icon-tiny"
+             src="{{ url_for('static', filename='icons/wi-sunset.svg') }}"
+             alt="Sunset">
+        <span>{{ d.sunset_local }}</span>
+      </div>
+    </div>
+  {% endfor %}
+</div>

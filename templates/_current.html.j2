@@ -1,51 +1,48 @@
 {% macro battery_icon(soc, charging, warning) -%}
 {% if warning -%}
-static/icons/battery-warning-light.svg
+static/icons/battery-warning-bold.svg
 {%- elif charging -%}
-static/icons/battery-charging-light.svg
+static/icons/battery-charging-bold.svg
 {%- elif soc > 90 -%}
-static/icons/battery-full-light.svg
+static/icons/battery-full-bold.svg
 {%- elif soc > 60 -%}
-static/icons/battery-high-light.svg
+static/icons/battery-high-bold.svg
 {%- elif soc > 30 -%}
-static/icons/battery-medium-light.svg
+static/icons/battery-medium-bold.svg
 {%- elif soc > 10 -%}
-static/icons/battery-low-light.svg
+static/icons/battery-low-bold.svg
 {%- else -%}
-static/icons/battery-empty-light.svg
+static/icons/battery-empty-bold.svg
 {%- endif %}
 {%- endmacro %}
 
-<header class="topbar">
-  <span>{{ date }} — {{ city }}</span>
-
-  <span class="right">
-    <img src="{{ battery_icon(battery_soc, is_charging, battery_warning) }}"
-         class="battery-icon {% if is_charging %}charging{% endif %}"
-         alt="Battery: {{ battery_soc }}%">
-    {{ battery_soc }}%
-  </span>
+<header class="topbar container">
+  <span class="city">{{ date }} — {{ city }}</span>
+  <div class="battery-status">
+    <img src="{{ battery_icon(battery_soc, is_charging, battery_warning) }}" class="battery-icon" alt="Battery: {{ battery_soc }}%">
+    <span class="battery-soc">{{ battery_soc }}%</span>
+  </div>
 </header>
 
 <section class="current">
   <img src="{{ url_for('static', filename='icons/' ~ (current.weather[0] | weather_icon)) }}"
        alt="Weather icon"
-       class="weather-icon-lg">
-  <div class="temps">
-    <div class="temp-now">{{ current.temp | round | int }}{{ units_temp }}</div>
-    <div class="feels-like">
+       class="icon-lg">
+  <div class="details">
+    <div class="temp-now item">{{ current.temp | round | int }}{{ units_temp }}</div>
+    <div class="feels-like item">
       Feels like {{ current.feels_like | round | int }}{{ units_temp }}
     </div>
-    <div class="wind">
+    <div class="wind item">
       {{ current.wind_speed | round }} {{ units_wind }}
     </div>
     {% set current_precip = hourly_precip(current) %}
     {% if current_precip %}
-    <div class="precip">
+    <div class="precip item">
       {{ current_precip }} {{ units_precip }}
     </div>
     {% endif %}
-    <div class="extras">
+    <div class="item extras">
       <img src="{{ url_for('static', filename='icons/' ~ (moon_phase | moon_phase_icon)) }}"
            alt="Moon phase"
            class="icon-md">
@@ -59,23 +56,23 @@ static/icons/battery-empty-light.svg
     </div>
   </div>
 
-  <div class="sun">
-    <div>Sunrise {{ current.sunrise_local }}</div>
-    <div>Sunset {{ current.sunset_local }}</div>
-    <div>Daylight {{ daylight }}</div>
-    <div>
+  <div class="sun item-block">
+    <div class="sun-item">Sunrise {{ current.sunrise_local }}</div>
+    <div class="sun-item">Sunset {{ current.sunset_local }}</div>
+    <div class="sun-item">Daylight {{ daylight }}</div>
+    <div class="sun-item">
       {% if uvi_occurred %}
         Max UV: {{ uvi_max }} (was at {{ uvi_time }})
       {% else %}
         Max UV: {{ uvi_max }} (at {{ uvi_time }})
       {% endif %}
     </div>
-    <div>AQI: <span class="aqi-{{ aqi_value | default(0) }}">{{ aqi }}</span></div>
-    <div class="tiny">
+    <div class="sun-item">AQI: <span class="aqi-{{ aqi_value | default(0) }}">{{ aqi }}</span></div>
+    <div class="item last-refresh">
       <img src="{{ url_for('static', filename='icons/wi-refresh.svg') }}"
            alt="Last refresh"
            class="icon-sm">
-      {{ last_refresh }}
+      <span class="refresh-text">{{ last_refresh }}</span>
     </div>
   </div>
 </section>

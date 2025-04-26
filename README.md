@@ -174,7 +174,7 @@ With automatic power-off between refreshes and quiet hour shutdown, average curr
 
 * Weather data © [OpenWeather](https://openweathermap.org/)
 * Weather Icons © [Erik Flowers](https://github.com/erikflowers/weather-icons)
-* Battery icons © [Phosphor Icons](https://phosphoricons.com) – light style variant
+* Battery icons © [Phosphor Icons](https://phosphoricons.com) – bold style variant
 * Typeface: [Atkinson Hyperlegible](https://brailleinstitute.org/freefont)
 * Waveshare IT8951 [driver](https://github.com/waveshareteam/IT8951-ePaper) © Waveshare
 

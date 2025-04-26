@@ -4,49 +4,22 @@
                          time_fmt, owm_icon (helper), hourly_precip (helper)
    --------------------------------------------------------------------------- #}
 
-<table class="hourly">
-  {# ─── header: local time of each hour ─── #}
-  <tr>
-    {% for h in hourly %}
-      <th>{{ h.local_time }}</th>
-    {% endfor %}
-  </tr>
-
-  {# ─── weather icon (take first condition) ─── #}
-  <tr>
-    {% for h in hourly %}
-      <td>
-        <img src="{{ url_for('static', filename='icons/' ~ (h.weather[0] | weather_icon)) }}"
-             alt="Hourly icon"
-             class="icon-sm">
-      </td>
-    {% endfor %}
-  </tr>
-
-  {# ─── temperature ─── #}
-  <tr>
-    {% for h in hourly %}
-      <td>{{ h.temp | round | int }}{{ units_temp }}</td>
-    {% endfor %}
-  </tr>
-
-  {# ─── wind speed & direction ─── #}
-  <tr>
-    {% for h in hourly %}
-      <td>
-        {{ h.wind_speed | round(0) }} {{ units_wind }}<br>
+<div class="forecast">
+  {% for h in hourly %}
+    <div class="forecast-block">
+      <div class="day-label">{{ h.local_time }}</div>
+      <img class="icon-sm"
+           src="{{ url_for('static', filename='icons/' ~ (h.weather[0] | weather_icon)) }}"
+           alt="Hourly icon">
+      <div class="temp">{{ h.temp | round | int }}{{ units_temp }}</div>
+      <div class="wind">
+        {{ h.wind_speed | round(0) }} {{ units_wind }}
         <img src="{{ url_for('static', filename='icons/wi-wind-deg.svg') }}"
              alt="Wind direction"
              class="icon-tiny"
              style="transform: rotate({{ h.wind_deg + 180 }}deg);">
-      </td>
-    {% endfor %}
-  </tr>
-
-  {# ─── precip (blank if none) ─── #}
-  <tr>
-    {% for h in hourly %}
-      <td>{{ hourly_precip(h) }}</td>
-    {% endfor %}
-  </tr>
-</table>
+      </div>
+      <div class="precip">{{ hourly_precip(h) }}</div>
+    </div>
+  {% endfor %}
+</div>

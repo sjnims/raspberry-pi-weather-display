@@ -1,93 +1,289 @@
+/*———————————————————————————————
+  0. Font Face Definitions
+———————————————————————————————*/
 @font-face {
-  font-family: "Atkinson Hyperlegible";
-  src: url("../fonts/Atkinson-Hyperlegible-Regular-102a.woff2") format("woff2");
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: #fff;
-  color: #000;
-  width: 1872px;
-  height: 1404px;
-  font-family: "Atkinson Hyperlegible", sans-serif;
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* ───── Layout helpers ───── */
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-RegularItalic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-LightItalic.woff2") format("woff2");
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-MediumItalic.woff2") format("woff2");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-SemiBoldItalic.woff2") format("woff2");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-ExtraLight.woff2") format("woff2");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-ExtraLightItalic.woff2") format("woff2");
+  font-weight: 200;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "hyperlegible-next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-ExtraBoldItalic.woff2") format("woff2");
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+/*———————————————————————————————
+  1. Minimal Reset
+———————————————————————————————*/
+
+/* 1.1 Box-sizing everywhere makes width/height behave intuitively */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* 1.2 Remove default body margins */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* 1.3 Allow images and SVGs to scale down if container is narrower */
+img, svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 1.4 Preserve a sensible line-height for text */
+body {
+  line-height: 1.5;
+}
+
+/*———————————————————————————————
+  2. Global Layout & Utilities
+———————————————————————————————*/
+
+/* 2.0 Global font family */
+html {
+  font-family: "hyperlegible-next";
+  font-size: 16px;
+}
+
+
+/* 2.1 Container that centers everything and constrains width */
+.container {
+  width: 100%;
+  max-width: 1872px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* 2.2 Top bar: flex layout for title / status */
 .topbar {
+  padding: 10px 20px;
   display: flex;
   justify-content: space-between;
-  font-size: 36px;
-  border-bottom: 1px solid #000;
-  padding: 6px 16px;
+  align-items: center;
 }
+
+/* 2.3 Main content area */
+.main {
+  padding: 16px 0;
+}
+
+/* 2.4 Forecast wrapper: horizontal flex container */
+.forecast {
+  display: flex;
+  gap: 8px;
+  justify-content: space-evenly;
+  flex-wrap: wrap;
+}
+
+/* 2.5 Forecast block (hourly or daily item) */
+.forecast-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: calc(100% / 5 - 16px); /* five items per row with gaps */
+  padding: 8px;
+  text-align: center;
+}
+
+/* 2.6 Card variant for daily blocks */
+.card {
+  background: #f8f8f8;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/*———————————————————————————————
+  3. Icon Size Helpers
+———————————————————————————————*/
+.icon-tiny { width: 24px; height: 24px; }
+.icon-sm   { width: 48px; height: 48px; }
+.icon-md   { width: 96px; height: 96px; }
+.icon-lg   { width: 160px; height: 160px; }
+
+/*———————————————————————————————
+  4. Topbar Specific Styles
+———————————————————————————————*/
+.topbar .city {
+  font-weight: bold;
+}
+
+/*———————————————————————————————
+  5. Current Weather Styles
+———————————————————————————————*/
 .current {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 48px;
-  margin: 32px 0;
+  justify-content: space-around;
+  margin: 24px 0;
 }
 
-/* ───── Icons ───── */
-.icon-tiny {
-  height: 24px;
-  width: auto;
-}
-.icon-sm {
-  height: 48px;
-  width: auto;
-}
-.icon-md {
-  height: 96px;
-  width: auto;
-}
-.icon-lg {
-  height: 160px;
-  width: auto;
-}
-
-/* ───── Current weather ───── */
-.temp-now {
-  font-size: 160px;
-}
-
-.wind,
-.precip {
-  font-size: 36px;
-  margin-top: 6px;
-}
-
-.sun {
-  font-size: 32px;
-  text-align: right;
-}
-
-/* .tiny {
-  font-size: 24px;
-} */
-
-/* ───── Hourly & daily tables ───── */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
-}
-
-th,
-td {
-  text-align: center;
-  font-size: 32px;
-  padding: 4px;
-}
-
-/* ───── Extras (moon, Beaufort, wind arrow) ───── */
-.extras {
+.current .details {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.current .item {
+  font-size: 1.5rem; /* 24px */
+}
+
+.current .temp-now {
+  font-size: 4rem; /* 64px */
+  font-weight: bold;
+}
+
+/*———————————————————————————————
+  6. Hourly Forecast Styles
+———————————————————————————————*/
+.forecast-block .day-label {
+  font-size: 1rem; /* 16px */
+  margin-bottom: 4px;
+}
+
+.forecast-block .temp {
+  font-size: 1.25rem; /* 20px */
+  margin: 4px 0;
+}
+
+.forecast-block .wind,
+.forecast-block .precip {
+  font-size: 0.875rem; /* 14px */
+}
+
+/*———————————————————————————————
+  7. Daily Forecast Styles
+———————————————————————————————*/
+.forecast-block .moon-label {
+  font-size: 0.75rem; /* 12px */
+  margin-top: 4px;
+}
+
+.forecast-block .sun-details {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem; /* 12px */
   margin-top: 6px;
+}
+
+/*———————————————————————————————
+  7. Battery Status Styles
+———————————————————————————————*/
+.battery-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.battery-icon {
+  width: 24px;
+  height: auto;
+}
+.battery-soc {
+  font-weight: bold;
 }
