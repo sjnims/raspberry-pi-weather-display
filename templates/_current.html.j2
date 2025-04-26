@@ -24,55 +24,87 @@ static/icons/battery-empty-bold.svg
   </div>
 </header>
 
-<section class="current">
-  <img src="{{ url_for('static', filename='icons/' ~ (current.weather[0] | weather_icon)) }}"
-       alt="Weather icon"
-       class="icon-lg">
-  <div class="details">
-    <div class="temp-now item">{{ current.temp | round | int }}{{ units_temp }}</div>
-    <div class="feels-like item">
-      Feels like {{ current.feels_like | round | int }}{{ units_temp }}
-    </div>
-    <div class="wind item">
-      {{ current.wind_speed | round }} {{ units_wind }}
-    </div>
-    {% set current_precip = hourly_precip(current) %}
-    {% if current_precip %}
-    <div class="precip item">
-      {{ current_precip }} {{ units_precip }}
-    </div>
-    {% endif %}
-    <div class="item extras">
-      <img src="{{ url_for('static', filename='icons/' ~ (moon_phase | moon_phase_icon)) }}"
-           alt="Moon phase"
-           class="icon-md">
-      <img src="{{ url_for('static', filename='icons/wi-wind-beaufort-' ~ bft ~ '.svg') }}"
-           alt="Wind force (BFT)"
-           class="icon-md">
-      <img src="{{ url_for('static', filename='icons/wi-wind-deg.svg') }}"
-           alt="Wind direction"
-           class="icon-md"
-           style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);">
+<section class="current center">
+  <div class="current-main">
+    <img src="{{ url_for('static', filename='icons/' ~ (current.weather[0] | weather_icon)) }}"
+         alt="Weather icon"
+         class="icon-lg">
+    <div class="current-info">
+      <div class="temp-now">{{ current.temp | round | int }}{{ units_temp }}</div>
+      <div class="condition">{{ current.weather[0].description | capitalize }}, feels like {{ current.feels_like | round | int }}{{ units_temp }}</div>
     </div>
   </div>
 
-  <div class="sun item-block">
-    <div class="sun-item">Sunrise {{ current.sunrise_local }}</div>
-    <div class="sun-item">Sunset {{ current.sunset_local }}</div>
-    <div class="sun-item">Daylight {{ daylight }}</div>
-    <div class="sun-item">
-      {% if uvi_occurred %}
-        Max UV: {{ uvi_max }} (was at {{ uvi_time }})
-      {% else %}
-        Max UV: {{ uvi_max }} (at {{ uvi_time }})
-      {% endif %}
+  <div class="current-stats">
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-wind-beaufort-' ~ bft ~ '.svg') }}"
+           alt="Wind speed (BFT)"
+           class="icon-sm">
+      <span>{{ current.wind_speed | round }} {{ units_wind }}</span>
     </div>
-    <div class="sun-item">AQI: <span class="aqi-{{ aqi_value | default(0) }}">{{ aqi }}</span></div>
-    <div class="item last-refresh">
+    {% set precip = hourly_precip(current) %}
+    {% if precip %}
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-raindrop.svg') }}"
+           alt="Precipitation"
+           class="icon-sm">
+      <span>{{ precip }} {{ units_precip }}</span>
+    </div>
+    {% endif %}
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-sunrise.svg') }}"
+           alt="Sunrise"
+           class="icon-sm">
+      <span>{{ current.sunrise_local }}</span>
+    </div>
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-sunset.svg') }}"
+           alt="Sunset"
+           class="icon-sm">
+      <span>{{ current.sunset_local }}</span>
+    </div>
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-day-sunny.svg') }}"
+           alt="Daylight hours"
+           class="icon-sm">
+      <span>{{ daylight }}</span>
+    </div>
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-hot.svg') }}"
+           alt="UV index"
+           class="icon-sm">
+      <span>{{ uvi_max }} at {{ uvi_time }}</span>
+    </div>
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-day-haze.svg') }}"
+           alt="AQI"
+           class="icon-sm">
+      <span>{{ aqi }}</span>
+    </div>
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-barometer.svg') }}"
+           alt="Barometric pressure"
+           class="icon-sm">
+      <span>FIX ME-BAROMETRIC PRESSURE</span>
+    </div>
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/wi-wind-deg.svg') }}"
+           alt="Wind direction: {{ current.wind_deg }}°"
+           class="icon-sm"
+           style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);">
+      <span>FIX ME-WIND DIRECTION CARDINAL</span>
+    </div>
+    <div class="stat">
+      <img src="{{ url_for('static', filename='icons/' ~ (moon_phase | moon_phase_icon)) }}"
+           alt="Moon phase"
+           class="icon-sm">
+      <span>FIX ME-MOON PHASE LABEL</span>
+    </div>
+    <div class="stat">
       <img src="{{ url_for('static', filename='icons/wi-refresh.svg') }}"
            alt="Last refresh"
            class="icon-sm">
-      <span class="refresh-text">{{ last_refresh }}</span>
+      <span>{{ last_refresh }}</span>
     </div>
   </div>
 </section>
