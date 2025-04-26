@@ -25,13 +25,14 @@ static/icons/battery-empty-bold.svg
 </header>
 
 <section class="current center">
-  <div class="current-main">
+  <div class="current-overview">
     <img src="{{ url_for('static', filename='icons/' ~ (current.weather[0] | weather_icon)) }}"
-         alt="Weather icon"
-         class="icon-lg">
-    <div class="current-info">
-      <div class="temp-now">{{ current.temp | round | int }}{{ units_temp }}</div>
-      <div class="condition">{{ current.weather[0].description | capitalize }}, feels like {{ current.feels_like | round | int }}{{ units_temp }}</div>
+         alt="Current conditions icon"
+         class="icon-lg overview-icon">
+    <div class="temp-now">{{ current.temp | round | int }}{{ units_temp }}</div>
+    <div class="condition">
+      Feels like {{ current.feels_like | round | int }}{{ units_temp }}<br>
+      {{ current.weather[0].description | capitalize }}
     </div>
   </div>
 

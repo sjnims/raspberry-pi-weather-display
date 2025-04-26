@@ -166,12 +166,12 @@ html {
   width: 100%;
   max-width: 1872px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 1rem; /* 16px */
 }
 
 /* 2.2 Top bar: flex layout for title / status */
 .topbar {
-  padding: 10px 20px;
+  padding: 0.625rem 1.25rem; /* 10px / 20 px */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -179,13 +179,13 @@ html {
 
 /* 2.3 Main content area */
 .main {
-  padding: 16px 0;
+  padding: 1rem 0; /* 16px */
 }
 
 /* 2.4 Forecast wrapper: horizontal flex container */
 .forecast {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem; /* 8px */
   justify-content: space-evenly;
   flex-wrap: wrap;
 }
@@ -195,16 +195,16 @@ html {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: calc(100% / 5 - 16px); /* five items per row with gaps */
-  padding: 8px;
+  width: calc(100% / 5 - 1rem); /* five items per row with gaps */
+  padding: 0.5rem; /* 8px */
   text-align: center;
 }
 
 /* 2.6 Card variant for daily blocks */
 .card {
   background: #f8f8f8;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-radius: 0.5rem; /* 8px */
+  box-shadow: 0 0.063rem 0.188rem rgba(0,0,0,0.1);
 }
 
 /* 2.7 Utility: center text */
@@ -216,10 +216,10 @@ html {
 /*———————————————————————————————
   3. Icon Size Helpers
 ———————————————————————————————*/
-.icon-tiny { width: 24px; height: 24px; }
-.icon-sm   { width: 48px; height: 48px; }
-.icon-md   { width: 96px; height: 96px; }
-.icon-lg   { width: 160px; height: 160px; }
+.icon-tiny { width: 1.5rem; height: 1.5rem; } /* 24px */
+.icon-sm   { width: 3rem; height: 3rem; } /* 48px */
+.icon-md   { width: 6rem; height: 6rem; } /* 96px */
+.icon-lg   { width: 10rem; height: 10rem; } /* 160px */
 
 /*———————————————————————————————
   4. Topbar Specific Styles
@@ -233,69 +233,68 @@ html {
 ———————————————————————————————*/
 .current {
   display: flex;
-  align-items: center;
-  justify-content: space-around;
-  margin: 24px 0;
-}
-
-.current .details {
-  display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.current .item {
-  font-size: 1.5rem; /* 24px */
-}
-
-.current .temp-now {
-  font-size: 4rem; /* 64px */
-  font-weight: bold;
+  align-items: center;
+  margin: 1.5rem 0; /* 24px */
 }
 
 /*──────────────────────────────────
   5.a Current Section Layout
 ──────────────────────────────────*/
-.current-main {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 24px;
+
+/* Overview grid: icon spans two rows, text in right column */
+.current-overview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  /* Two equal‑height rows so text hugs the icon’s top & bottom edges */
+  grid-template-rows: 1fr 1fr;
+  line-height: 1;
 }
 
-.current-icon {
-  width: 96px;
+.overview-icon {
+  grid-row: 1 / span 2;  /* span both rows */
+  grid-column: 1;
+  width: 22.5rem;  /* 360px */
   height: auto;
 }
 
-.current-info {
-  text-align: center;
+.current-overview .temp-now {
+  grid-row: 1;
+  grid-column: 2;
+  font-size: 5.25rem;  /* 84px */
+  align-self: end;   /* stick to bottom edge */
+  font-weight: bold;
+  text-align: left;
 }
 
-.current-condition {
-  font-size: 1.5rem; /* 24px */
-  margin-top: 8px;
+.current-overview .condition {
+  grid-row: 2;
+  grid-column: 2;
+  align-self: start;     /* stick to top edge */
+  font-size: 1.5rem;   /* 24px */
   font-weight: 500;
+  text-align: left;
 }
 
+/* Stats: two rows of five evenly‑spaced columns */
 .current-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem 1.5rem; /* 12px 24px */
+  margin-top: 1.5rem; /* 24px */
+  width: 100%;
 }
 
 .stat {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem; /* 8px */
   justify-content: center;
   font-size: 1rem; /* 16px */
 }
 
 .stat-icon {
-  width: 24px;
+  width: 1.5rem; /* 24px */
   height: auto;
   flex-shrink: 0;
 }
@@ -309,12 +308,12 @@ html {
 ———————————————————————————————*/
 .forecast-block .day-label {
   font-size: 1rem; /* 16px */
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem; /* 4px */
 }
 
 .forecast-block .temp {
   font-size: 1.25rem; /* 20px */
-  margin: 4px 0;
+  margin: 0.25rem 0; /* 4px */
 }
 
 .forecast-block .wind,
@@ -327,15 +326,15 @@ html {
 ———————————————————————————————*/
 .forecast-block .moon-label {
   font-size: 0.75rem; /* 12px */
-  margin-top: 4px;
+  margin-top: 0.25rem; /* 4px */
 }
 
 .forecast-block .sun-details {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem; /* 4px */
   font-size: 0.75rem; /* 12px */
-  margin-top: 6px;
+  margin-top: 0.375rem; /* 6px */
 }
 
 /*———————————————————————————————
@@ -344,11 +343,11 @@ html {
 .battery-status {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem; /* 4px */
   margin-left: auto;
 }
 .battery-icon {
-  width: 24px;
+  width: 1.5rem; /* 24px */
   height: auto;
 }
 .battery-soc {
