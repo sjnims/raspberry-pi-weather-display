@@ -9,7 +9,7 @@
   "scripts": {
     "icons:trim":   "bash deploy/scripts/trim_svgs.sh",
     "icons:color":  "bash deploy/scripts/fix_svg_color.sh",
-    "icons:sprite": "svg-sprite -c deploy/config/sprite.config.js 'static/icons/*.svg'",
+    "icons:sprite": "svg-sprite --shape-id.generator='icon-%s' --symbol -o static/icons --symbol-dest . --symbol-sprite sprite.svg 'static/icons/*.svg'",
     "icons:build":  "npm run icons:trim && npm run icons:color && npm run icons:sprite",
     "build":        "npm run icons:build"
   },
