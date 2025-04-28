@@ -1,25 +1,19 @@
-{# ---------------------------------------------------------------------------
-   Hour-by-hour forecast strip
-   Context vars expected: hourly, units_temp, units_wind,
-                         time_fmt, owm_icon (helper), hourly_precip (helper)
-   --------------------------------------------------------------------------- #}
-
 <div class="forecast">
   {% for h in hourly %}
-    <div class="forecast-block">
-      <div class="day-label">{{ h.local_time }}</div>
-      <img class="icon-sm"
-           src="{{ url_for('static', filename='icons/' ~ (h.weather[0] | weather_icon)) }}"
-           alt="Hourly icon">
-      <div class="temp">{{ h.temp | round | int }}{{ units_temp }}</div>
-      <div class="wind">
-        {{ h.wind_speed | round(0) }} {{ units_wind }}
-        <img src="{{ url_for('static', filename='icons/wi-wind-deg.svg') }}"
-             alt="Wind direction"
-             class="icon-tiny"
+    <div class="forecast__card">
+      <div class="forecast__card-name">{{ h.local_time }}</div>
+      <svg class="forecast__card-icon">
+        <use href="{{ url_for('static', filename='icons/sprite.svg') }}#{{ h.weather[0] | weather_icon | replace('.svg','') }}"></use>
+      </svg>
+      <div class="forecast__card-temp">{{ h.temp | round | int }}{{ units_temp }}</div>
+      <div class="forecast__card-meta">
+        {{ h.wind_speed | round(0) }} {{ units_wind }}<br>
+        <svg class="forecast__wind-icon"
              style="transform: rotate({{ h.wind_deg + 180 }}deg);">
+          <use href="{{ url_for('static', filename='icons/sprite.svg') }}#wi-wind-deg"></use>
+        </svg><br>
+        {{ hourly_precip(h) }}
       </div>
-      <div class="precip">{{ hourly_precip(h) }}</div>
     </div>
   {% endfor %}
 </div>

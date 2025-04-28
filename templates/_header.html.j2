@@ -1,0 +1,35 @@
+{% macro battery_icon(soc, charging, warning) -%}
+{% if warning -%}
+battery-warning-bold
+{%- elif charging -%}
+battery-charging-bold
+{%- elif soc > 90 -%}
+battery-full-bold
+{%- elif soc > 60 -%}
+battery-high-bold
+{%- elif soc > 30 -%}
+battery-medium-bold
+{%- elif soc > 10 -%}
+battery-low-bold
+{%- else -%}
+battery-empty-bold
+{%- endif %}
+{%- endmacro %}
+
+<header class="weather-dashboard__header">
+  <div class="weather-dashboard__header-date">{{ date }}</div>
+  <div class="weather-dashboard__header__meta">
+    <div class="weather-dashboard__header-meta-item">
+      <svg class="weather-dashboard__header-icon">
+        <use href="{{ url_for('static', filename='icons/sprite.svg') }}#wi-refresh"></use>
+      </svg>
+      <span>{{ last_refresh }}</span>
+    </div>
+    <div class="weather-dashboard__header-meta-item">
+      <svg class="weather-dashboard__header-icon">
+        <use href="{{ url_for('static', filename='icons/sprite.svg') }}#{{ battery_icon(battery_soc, is_charging, battery_warning) }}"></use>
+      </svg>
+      <span>{{ battery_soc }}%</span>
+    </div>
+  </div>
+</header>
