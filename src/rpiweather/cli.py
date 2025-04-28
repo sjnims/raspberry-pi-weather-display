@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo
+import subprocess
+import webbrowser
 
 # ── third‑party ──────────────────────────────────────────────────────────────
 import typer
@@ -93,6 +95,8 @@ def cycle(
     soc: int,
     is_charging: bool,
     battery_warning: bool,
+    serve: bool,
+    once: bool,
 ) -> bool:
     try:
         weather = fetch_weather(cfg_obj)
@@ -141,7 +145,23 @@ def cycle(
     png_path = out_dir / "dash.png"
 
     html_path.write_text(html, encoding="utf-8")
-    html_to_png(html, png_path, preview=preview)
+
+    # Generate PNG only during normal (non‑preview) cycles.
+    if not preview:
+        html_to_png(html, png_path, preview=False)
+    if serve and preview and once:
+        # The HTTP server's root is the "preview" directory itself,
+        # so the file is served at the web root.
+        url = "http://localhost:8000/dash-preview.html"
+        typer.echo(f"Serving preview on {url}  - press Ctrl-C to quit")
+        # Launch the default browser (non‑blocking); ignore failure on headless CI
+        try:
+            webbrowser.open_new_tab(url)
+        except Exception as exc:  # pragma: no cover
+            logger.debug("Could not open browser: %s", exc)
+        subprocess.call(
+            ["python3", "-m", "http.server", "8000", "--directory", "preview"]
+        )
 
     if not preview:
         display_png(png_path, mode_override=0 if full_refresh else 2)
@@ -153,6 +173,13 @@ def cycle(
 def run(
     config: Path = typer.Option(..., "--config", "-c", exists=True, dir_okay=False),
     preview: bool = typer.Option(False, "--preview", "-p"),
+    serve: bool = typer.Option(
+        False,
+        "--serve",
+        "-s",
+        help="When used with --preview, start a simple HTTP server to serve the "
+        "preview directory (use Ctrl-C to stop).",
+    ),
     once: bool = typer.Option(False, "--once", "-1", help="Run one cycle then exit"),
     debug: bool = typer.Option(False, "--debug"),
     stay_awake_url: Optional[str] = typer.Option(
@@ -167,6 +194,14 @@ def run(
     )
 
     cfg_obj: WeatherConfig = load_config(config)
+    if serve and not preview:
+        typer.secho(
+            "--serve can only be used together with --preview",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     load_icon_mapping()
 
     # precedence: CLI flag ▸ YAML ▸ default
@@ -208,7 +243,16 @@ def run(
             is_charging = batt["is_charging"]
             battery_warning = batt["battery_warning"]
 
-        ok = cycle(cfg_obj, preview, full_refresh, soc, is_charging, battery_warning)
+        ok = cycle(
+            cfg_obj,
+            preview,
+            full_refresh,
+            soc,
+            is_charging,
+            battery_warning,
+            serve,
+            once,
+        )
         if ok:
             error_streak = 0
             if full_refresh:
