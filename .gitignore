@@ -33,6 +33,7 @@ config.yaml
 .pytest_cache/
 .ruff_cache/
 __pypackages__/
+node_modules/
 
 # Preview files
 preview/

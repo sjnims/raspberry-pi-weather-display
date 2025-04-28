@@ -1,0 +1,31 @@
+{
+  "name": "raspberry-pi-weather-display",
+  "version": "1.0.0",
+  "description": "A self-contained Python 3 application that turns a **Raspberry Pi Zero 2 W** and a **Waveshare 10.3″ IT8951 e-paper HAT** into an ultra-low-power framed weather dashboard.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "icons:trim":   "bash deploy/scripts/trim_svgs.sh",
+    "icons:color":  "bash deploy/scripts/fix_svg_color.sh",
+    "icons:sprite": "svg-sprite -c deploy/config/sprite.config.js 'static/icons/*.svg'",
+    "icons:build":  "npm run icons:trim && npm run icons:color && npm run icons:sprite",
+    "build":        "npm run icons:build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sjnims/raspberry-pi-weather-display.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sjnims/raspberry-pi-weather-display/issues"
+  },
+  "homepage": "https://github.com/sjnims/raspberry-pi-weather-display#readme",
+  "devDependencies": {
+    "svg-sprite": "^2.0.4"
+  }
+}
