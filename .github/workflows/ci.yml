@@ -14,6 +14,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ─────────────────────────────────────────────
+      # SVG build toolchain (Inkscape + xmlstarlet + Node)
+      # ─────────────────────────────────────────────
+      - name: Install Inkscape & xmlstarlet
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y inkscape xmlstarlet
+
+      - name: Set up Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Node dev-dependencies
+        run: npm ci
+
+      - name: Build icons (trim → color-fix → sprite)
+        run: npm run icons:build
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
