@@ -168,7 +168,7 @@ body {
   width: 100%;
 }
 
-.weather-dashboard {
+.weather-display {
   width: 100%;
   max-width: 1872px;
   margin: 0 auto;
@@ -179,27 +179,27 @@ body {
   Header
 ———————————————————————————————*/
 
-.weather-dashboard__header {
+.weather-display__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.weather-dashboard__header-date {
+.weather-display__header-date {
   font-weight: bold;
 }
 
-.weather-dashboard__header-meta {
+.weather-display__header-meta {
   display: flex;
   gap: 1rem; /* 16px */
 }
 
-.weather-dashboard__header-meta-item {
+.weather-display__header-meta-item {
   display: flex;
   align-items: center;
   font-size: 0.9rem; /* 14px */
 }
-.weather-dashboard__header-icon {
+.weather-display__header-icon {
   width: 1.25rem;   /* 20 px */
   height: 1.25rem;
   fill: currentColor;
@@ -207,37 +207,41 @@ body {
   flex-shrink: 0;
 }
 
+.weather-display__header-meta-item span {
+  font-weight: bold;
+}
+
 /*———————————————————————————————
   Location & Summary
 ———————————————————————————————*/
 
-.weather-dashboard__location {
+.weather-display__location {
   text-align: center;
   margin-top: 2rem; /* 32px */
 }
 
-.weather-dashboard__main {
+.weather-display__main {
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 1rem 0; /* 16px 0 */
 }
-.weather-dashboard__main-icon {
+.weather-display__main-icon {
   width: 6rem; /* 96px */
   height: auto;
   margin-right: 1.25rem; /* 20px */
   /*color: #5d5d5d; */
 }
-.weather-dashboard__main-temp {
+.weather-display__main-temp {
   font-size: 5rem; /* 80px */
   font-weight: bold;
 }
-.weather-dashboard__main-temp span {
+.weather-display__main-temp span {
   font-size: 2rem; /* 32px */
   margin-left: 0.5rem; /* 8px */
 }
 
-.weather-dashboard__description {
+.weather-display__description {
   text-align: center;
   font-size: 1.5rem; /* 24px */
   font-weight: bold;
@@ -248,24 +252,24 @@ body {
   Detail Metrics
 ———————————————————————————————*/
 
-.weather-dashboard__details {
+.weather-display__details {
   display: flex;
   justify-content: center;
   gap: 2rem; /* 32px */
   flex-wrap: wrap;
   margin-bottom: 2rem; /* 32px */
 }
-.weather-dashboard__detail {
+.weather-display__detail {
   display: flex;
   flex-direction: column;
   align-items: center;
   font-size: 0.9rem; /* 14px */
   line-height: 1.6;
 }
-.weather-dashboard__detail img {
+.weather-display__detail-icon {
   margin-bottom: 0.5rem; /* 8px */
-  width: 2rem; /* 32px */
-  height: auto;
+  width: 1.6rem; /* 25px */
+  height: 1.6rem; /* 25px */
 }
 
 /*———————————————————————————————
@@ -297,6 +301,8 @@ body {
   fill: currentColor;
   flex-shrink: 0;
   margin-bottom: 0.3125rem; /* 5px */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .forecast__card-name {

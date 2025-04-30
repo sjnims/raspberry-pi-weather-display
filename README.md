@@ -92,6 +92,7 @@ poetry run weather run --config config.yaml --preview --once
 ```
 
 ### Live‑reload (optional)
+
 If you installed `watchdog` (in `requirements‑dev.txt`) run:
 
 ```bash
@@ -164,6 +165,7 @@ refresh_minutes: 120   # base interval; scales with SoC: 1× above 50%, 4× at 0
 | Auto power-off (between refreshes + quiet hours) | ~15–18 mA  |
 
 With automatic power-off between refreshes and quiet hour shutdown, average current draw is **~6–9 mA** depending on refresh frequency. A full refresh adds ~2 mAh. Runtime on a 12 000 mAh pack:
+
 * 2 refreshes/day → **50–60 days**
 * 4–6 refreshes/day → **30–40 days**
 * constant idle (no sleep) → **21–23 days**
