@@ -62,6 +62,11 @@ module = [
 ignore_missing_imports = true
 follow_imports = "skip"
 
+[tool.pyright]
+reportMissingImports = true
+reportMissingTypeStubs = false
+typeCheckingMode = "strict"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Any, Dict
 from pathlib import Path
-from typing import cast
-import builtins
 
 import pytest
 from rpiweather import power
+from rpiweather.power import PowerManager, PiJuiceWakeup, LinuxRTCWakeup
 
 
 class _FakeSubprocess:
@@ -34,41 +33,47 @@ def test_graceful_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_schedule_wakeup_pijuice(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Force PiJuice path to succeed
-    called: dict[str, Any] = {}
+    # Create a mock PiJuiceWakeup
+    called: Dict[str, bool] = {}
 
-    def fake_set_alarm(_dt: datetime) -> bool:  # noqa: D401
-        called["ok"] = True
-        return True
+    class MockPiJuiceWakeup(PiJuiceWakeup):
+        def set_wakeup(self, wake_time: datetime) -> bool:
+            called["ok"] = True
+            return True
 
-    monkeypatch.setattr(power, "_set_pijuice_alarm", fake_set_alarm, raising=True)
+    # Use only our mock provider
+    power_manager = PowerManager(wakeup_providers=[MockPiJuiceWakeup()])
 
-    power.schedule_wakeup(datetime.now(timezone.utc) + timedelta(minutes=10))
+    # Test wakeup scheduling
+    wake_time = datetime.now()
+    result = power_manager.schedule_wakeup(wake_time)
+
+    assert result is True
     assert called.get("ok") is True
 
 
-def test_schedule_wakeup_rtc(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    """PiJuice fails → fallback writes to fake wakealarm."""
+def test_schedule_wakeup_rtc(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """PiJuice fails → fallback to system RTC."""
 
-    def fake_set_alarm(_dt: datetime) -> bool:  # noqa: D401
-        return False
+    # Mock PiJuice that fails
+    class MockPiJuiceFail(PiJuiceWakeup):
+        def set_wakeup(self, wake_time: datetime) -> bool:
+            return False
 
+    # Mock RTC with test file
     wake_file: Path = tmp_path / "wakealarm"
-    wake_file.write_text("")  # create
+    wake_file.write_text("")  # create empty file
 
-    # patch alarm & open()
-    monkeypatch.setattr(power, "_set_pijuice_alarm", fake_set_alarm, raising=True)
+    class MockRTC(LinuxRTCWakeup):
+        def __init__(self) -> None:
+            super().__init__(str(wake_file))
 
-    # Provide replacement that calls original built‑ins open to avoid recursion
-    orig_open = builtins.open  # save
+    # Create manager with both providers
+    power_manager = PowerManager(wakeup_providers=[MockPiJuiceFail(), MockRTC()])
 
-    def fake_open(*_args: Any, **_kwargs: Any):  # noqa: D401
-        return orig_open(wake_file, "w", encoding="utf-8")
+    # Test wakeup scheduling
+    wake_time = datetime.now()
+    result = power_manager.schedule_wakeup(wake_time)
 
-    monkeypatch.setattr(builtins, "open", cast(Any, fake_open), raising=True)
-
-    power.schedule_wakeup(datetime.now(timezone.utc) + timedelta(minutes=10))
-    assert wake_file.read_text().strip() != ""
+    assert result is True
+    assert wake_file.read_text() != ""  # File should have been written to

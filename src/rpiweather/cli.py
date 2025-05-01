@@ -1,16 +1,23 @@
+"""E-Ink Weather Display CLI application.
+
+This module provides the command-line interface for the Raspberry Pi
+Weather Display, including dashboard rendering, weather fetching,
+power management, and configuration utilities.
+"""
+
 from __future__ import annotations
 
 # ── standard library ─────────────────────────────────────────────────────────
 import logging
+import subprocess
 import sys
 import tempfile
 import time
+import webbrowser
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo
-import subprocess
-import webbrowser
 
 # ── third‑party ──────────────────────────────────────────────────────────────
 import typer
@@ -24,26 +31,25 @@ from rpiweather.display.error_ui import render_error_screen
 from rpiweather.display.render import (
     FULL_REFRESH_INTERVAL,
     TEMPLATE,
-    html_to_png,
     build_dashboard_context,
-)
-from rpiweather.weather.api import (
-    WeatherAPIError,
-    fetch_weather,
-)
-from rpiweather.weather.helpers import (
-    load_icon_mapping,
-    get_battery_status,
-    PiJuiceLike,
+    html_to_png,
 )
 from rpiweather.helpers import (
+    get_refresh_delay_minutes,
     in_quiet_hours,
     seconds_until_quiet_end,
-    get_refresh_delay_minutes,
     should_power_off,
 )
-from rpiweather.remote import should_stay_awake
 from rpiweather.power import graceful_shutdown, schedule_wakeup
+from rpiweather.remote import should_stay_awake
+from rpiweather.types.pijuice import PiJuiceLike
+from rpiweather.weather import (
+    WeatherAPI,
+    WeatherAPIError,
+    WeatherResponse,
+    get_battery_status,
+    load_icon_mapping,
+)
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
 app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)
@@ -53,119 +59,364 @@ app.add_typer(config_app, name="config")
 logger: logging.Logger = logging.getLogger("rpiweather")
 
 DEFAULT_STAY_AWAKE_URL = "http://localhost:8000/stay_awake.json"
-MIN_SHUTDOWN_SLEEP_MIN = 20  # don’t power‑off for very short sleeps
+MIN_SHUTDOWN_SLEEP_MIN = 20  # don't power‑off for very short sleeps
 
 
-# ───────────────────────── helper functions ─────────────────────────────────
-def get_pijuice() -> Optional[PiJuiceLike]:
-    try:
-        import pijuice  # type: ignore[import-not-found]
+class WeatherDisplay:
+    """Main controller class for the weather display application."""
 
-        return pijuice.PiJuice(1, 0x14)  # type: ignore[call-arg]
-    except Exception:
-        return None
+    pijuice: Optional[PiJuiceLike]  # Add this explicit field type
 
+    def __init__(self, config_path: Path, debug: bool = False):
+        """Initialize the weather display controller.
 
-def get_soc(pijuice: Optional[PiJuiceLike]) -> int:
-    if pijuice is None:
-        return 100
-    try:
-        return pijuice.status.GetChargeLevel()["data"]  # type: ignore[attr-defined]
-    except Exception:
-        return 100
+        Args:
+            config_path: Path to config.yaml
+            debug: Enable debug logging
+        """
+        # Configure logging
+        logging.basicConfig(
+            level=logging.DEBUG if debug else logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(message)s",
+        )
 
+        # Load configuration and initialize services
+        self.config: WeatherConfig = load_config(config_path)
+        self.weather_api = WeatherAPI(self.config)
+        self.pijuice = self._initialize_pijuice()
+        self.error_streak = 0
+        self.last_full_refresh = datetime.now()
 
-def ensure_rtc_synced(pijuice: Optional[PiJuiceLike]) -> None:
-    if pijuice is None:
-        return
-    try:
-        rtc_time = pijuice.rtc.GetTime()["data"]  # type: ignore[attr-defined]
-        if rtc_time["year"] < 2024:
-            pijuice.rtc.SetTime()  # type: ignore[attr-defined]
-            logger.info("RTC set from system clock")
-    except Exception as exc:
-        logger.debug("RTC sync skipped: %s", exc)
+        # Load weather icon mapping
+        load_icon_mapping()
 
+    def _initialize_pijuice(self) -> Optional["PiJuiceLike"]:
+        """Initialize PiJuice hardware interface if available."""
+        try:
+            import pijuice  # type: ignore[import-not-found]
 
-# ───────────────────────── dashboard cycle ──────────────────────────────────
-def cycle(
-    cfg_obj: WeatherConfig,
-    preview: bool,
-    full_refresh: bool,
-    soc: int,
-    is_charging: bool,
-    battery_warning: bool,
-    serve: bool,
-    once: bool,
-) -> bool:
-    try:
-        weather = fetch_weather(cfg_obj)
-    except WeatherAPIError as err:
-        logger.error("OpenWeather error (%s): %s", err.code, err.message)
+            # Add a cast to help the type checker
+            from typing import cast
+
+            pj = cast(PiJuiceLike, pijuice.PiJuice(1, 0x14))  # type: ignore[call-arg]
+
+            self._ensure_rtc_synced(pj)
+            return pj
+        except Exception as exc:
+            logger.debug("PiJuice not available: %s", exc)
+            return None
+
+    def _ensure_rtc_synced(self, pijuice: PiJuiceLike) -> None:
+        """Ensure the PiJuice RTC is synchronized with system time.
+
+        Args:
+            pijuice: PiJuice hardware interface
+        """
+        try:
+            rtc_time = pijuice.rtc.GetTime()["data"]  # type: ignore[attr-defined]
+            if rtc_time["year"] < 2024:
+                pijuice.rtc.SetTime()  # type: ignore[attr-defined]
+                logger.info("RTC set from system clock")
+        except Exception as exc:
+            logger.debug("RTC sync skipped: %s", exc)
+
+    def get_battery_status(self) -> tuple[int, bool, bool]:
+        """Get current battery status information.
+
+        Returns:
+            Tuple of (state_of_charge, is_charging, battery_warning)
+        """
+        soc = 100
+        is_charging = False
+        battery_warning = False
+
+        if self.pijuice:
+            try:
+                soc = self.pijuice.status.GetChargeLevel()["data"]  # type: ignore
+                batt = get_battery_status(self.pijuice)
+                is_charging = batt["is_charging"]
+                battery_warning = batt.get("battery_warning", False)
+            except Exception as exc:
+                logger.warning("Could not get battery status: %s", exc)
+
+        return soc, is_charging, battery_warning
+
+    def fetch_and_render(
+        self,
+        preview: bool = False,
+        full_refresh: bool = False,
+        serve: bool = False,
+        once: bool = False,
+    ) -> bool:
+        """Fetch weather data and render the dashboard.
+
+        Args:
+            preview: Generate preview HTML only (no PNG or display)
+            full_refresh: Force full refresh of e-ink display
+            serve: Start a local HTTP server to view preview
+            once: Run one cycle then exit
+
+        Returns:
+            True if successful, False on error
+        """
+        soc, is_charging, battery_warning = self.get_battery_status()
+
+        try:
+            weather = self.weather_api.fetch_weather()
+            self._prepare_localized_timestamps(weather)
+            return self._render_dashboard(
+                weather,
+                preview,
+                full_refresh,
+                soc,
+                is_charging,
+                battery_warning,
+                serve,
+                once,
+            )
+        except WeatherAPIError as err:
+            logger.error("OpenWeather error (%s): %s", err.code, err.message)
+            if not preview:
+                self._render_error_screen(err, soc, is_charging)
+            return False
+
+    def _prepare_localized_timestamps(self, weather: WeatherResponse) -> None:
+        """Prepare localized timestamps for display.
+
+        Args:
+            weather: Weather response object
+        """
+        local_tz = ZoneInfo(self.config.timezone)
+        time_fmt = self.config.time_format_general
+
+        # Add localized sunrise/sunset times to daily forecasts
+        for d in weather.daily:
+            d.sunrise_local = d.sunrise.astimezone(local_tz).strftime(time_fmt)
+            d.sunset_local = d.sunset.astimezone(local_tz).strftime(time_fmt)
+
+        # Add localized sunrise/sunset times to current forecast
+        weather.current.sunrise_local = weather.current.sunrise.astimezone(
+            local_tz
+        ).strftime(time_fmt)
+        weather.current.sunset_local = weather.current.sunset.astimezone(
+            local_tz
+        ).strftime(time_fmt)
+
+    def _render_dashboard(
+        self,
+        weather: WeatherResponse,
+        preview: bool,
+        full_refresh: bool,
+        soc: int,
+        is_charging: bool,
+        battery_warning: bool,
+        serve: bool,
+        once: bool,
+    ) -> bool:
+        """Render the dashboard HTML/PNG and update display.
+
+        Args:
+            weather: Weather data to display
+            preview: Generate preview HTML only
+            full_refresh: Force full display refresh
+            soc: Battery state of charge
+            is_charging: Whether battery is charging
+            battery_warning: Whether to show battery warning
+            serve: Serve preview on HTTP server
+            once: Exit after one cycle
+
+        Returns:
+            True if rendering was successful
+        """
+
+        # Provide a strictly-typed url_for for templates
+        def url_for(endpoint: str, filename: str = "") -> str:
+            if endpoint == "static":
+                return f"/static/{filename}"
+            raise ValueError(f"Unsupported endpoint: {endpoint}")
+
+        # Build template context
+        ctx = build_dashboard_context(
+            self.config, weather, soc, is_charging, battery_warning
+        )
+        ctx["url_for"] = url_for
+
+        # Render HTML template
+        html = TEMPLATE.render(**ctx)  # type: ignore
+        out_dir = Path("preview")
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        html_path = out_dir / "dash-preview.html"
+        png_path = out_dir / "dash.png"
+        html_path.write_text(html, encoding="utf-8")
+
+        # Generate PNG for display
         if not preview:
-            with tempfile.TemporaryDirectory() as td:
-                error_png = Path(td) / "error.png"
-                render_error_screen(
-                    f"API Error ({err.code}): {err.message}",
-                    soc,
-                    is_charging,
-                    html_to_png_func=html_to_png,
-                    out_path=error_png,
-                )
-        return False
+            html_to_png(html, png_path, preview=False)
 
-    local_tz = ZoneInfo(cfg_obj.timezone)
-    time_fmt = cfg_obj.time_format_general
+        # Serve preview in browser if requested
+        if serve and preview and once:
+            self._serve_preview_in_browser()
 
-    for d in weather.daily:
-        d.sunrise_local = d.sunrise.astimezone(local_tz).strftime(time_fmt)
-        d.sunset_local = d.sunset.astimezone(local_tz).strftime(time_fmt)
+        # Update e-ink display
+        if not preview:
+            display_png(png_path, mode_override=0 if full_refresh else 2)
 
-    weather.current.sunrise_local = weather.current.sunrise.astimezone(
-        local_tz
-    ).strftime(time_fmt)
-    weather.current.sunset_local = weather.current.sunset.astimezone(local_tz).strftime(
-        time_fmt
-    )
+        return True
 
-    # Provide a strictly-typed url_for for templates
-    def url_for(endpoint: str, filename: str = "") -> str:
-        if endpoint == "static":
-            return f"/static/{filename}"
-        raise ValueError(f"Unsupported endpoint: {endpoint}")
-
-    ctx = build_dashboard_context(cfg_obj, weather, soc, is_charging, battery_warning)
-    ctx["url_for"] = url_for
-
-    html = TEMPLATE.render(**ctx)  # type: ignore
-    out_dir = Path("preview")
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    html_path = out_dir / "dash-preview.html"
-    png_path = out_dir / "dash.png"
-
-    html_path.write_text(html, encoding="utf-8")
-
-    # Generate PNG only during normal (non‑preview) cycles.
-    if not preview:
-        html_to_png(html, png_path, preview=False)
-    if serve and preview and once:
-        # The HTTP server's root is the "preview" directory itself,
-        # so the file is served at the web root.
+    def _serve_preview_in_browser(self) -> None:
+        """Start HTTP server and open browser for preview."""
         url = "http://localhost:8000/dash-preview.html"
-        typer.echo(f"Serving preview on {url}  - press Ctrl-C to quit")
-        # Launch the default browser (non‑blocking); ignore failure on headless CI
+        typer.echo(f"Serving preview on {url} - press Ctrl-C to quit")
+
         try:
             webbrowser.open_new_tab(url)
         except Exception as exc:  # pragma: no cover
             logger.debug("Could not open browser: %s", exc)
+
         subprocess.call(
             ["python3", "-m", "http.server", "8000", "--directory", "preview"]
         )
 
-    if not preview:
-        display_png(png_path, mode_override=0 if full_refresh else 2)
-    return True
+    def _render_error_screen(
+        self, error: WeatherAPIError, soc: int, is_charging: bool
+    ) -> None:
+        """Render error screen on display.
+
+        Args:
+            error: Weather API error
+            soc: Battery state of charge
+            is_charging: Whether battery is charging
+        """
+        with tempfile.TemporaryDirectory() as td:
+            error_png = Path(td) / "error.png"
+            render_error_screen(
+                f"API Error ({error.code}): {error.message}",
+                soc,
+                is_charging,
+                html_to_png_func=html_to_png,
+                out_path=error_png,
+            )
+            display_png(error_png)
+
+    def run(
+        self,
+        preview: bool = False,
+        serve: bool = False,
+        once: bool = False,
+        stay_awake_url: Optional[str] = None,
+    ) -> None:
+        """Run the weather display application.
+
+        Args:
+            preview: Generate preview HTML only
+            serve: Start a local HTTP server to view preview
+            once: Run one cycle then exit
+            stay_awake_url: Override URL for remote stay-awake feature
+        """
+        if serve and not preview:
+            typer.secho(
+                "--serve can only be used together with --preview",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+
+        # Set up stay-awake URL with precedence: CLI > config > default
+        effective_url = (
+            stay_awake_url or self.config.stay_awake_url or DEFAULT_STAY_AWAKE_URL
+        )
+
+        base_minutes = self.config.refresh_minutes
+
+        # Main application loop
+        while True:
+            now = datetime.now()
+
+            # Check if we should stay awake (overrides quiet hours)
+            if should_stay_awake(effective_url):
+                logger.debug("Stay-awake flag true - overriding quiet hours")
+                in_quiet = False
+            else:
+                in_quiet = in_quiet_hours(now, self.config.quiet_hours)
+
+            # Handle quiet hours
+            if in_quiet:
+                self._sleep_until_quiet_hours_end(now)
+                continue
+
+            # Determine if full refresh is needed
+            full_refresh = (
+                datetime.now() - self.last_full_refresh > FULL_REFRESH_INTERVAL
+            )
+
+            # Fetch weather and render dashboard
+            ok = self.fetch_and_render(preview, full_refresh, serve, once)
+
+            # Handle success or error
+            if ok:
+                self.error_streak = 0
+                if full_refresh:
+                    self.last_full_refresh = datetime.now()
+            else:
+                self.error_streak += 1
+                if self.error_streak >= 3:
+                    logger.warning("3 consecutive failures → backing off x4 interval")
+                    time.sleep(base_minutes * 4 * 60)
+                    continue
+
+            # Exit if only running once
+            if once:
+                break
+
+            # Determine sleep time based on battery status
+            soc, _, _ = self.get_battery_status()
+            sleep_min = get_refresh_delay_minutes(base_minutes, soc)
+
+            # Handle power management
+            if should_power_off(self.config, soc, now):
+                self._schedule_power_off(sleep_min, soc)
+                break
+
+            # Normal sleep
+            logger.info(
+                "Battery %02d%% → sleeping %d min (%.1fx normal)",
+                soc,
+                sleep_min,
+                sleep_min / base_minutes,
+            )
+            time.sleep(sleep_min * 60)
+
+    def _sleep_until_quiet_hours_end(self, now: datetime) -> None:
+        """Sleep until quiet hours end.
+
+        Args:
+            now: Current datetime
+        """
+        secs = seconds_until_quiet_end(now, self.config.quiet_hours)
+        logger.info(
+            "Quiet hours active → sleeping %d min until %s",
+            secs // 60,
+            (now + timedelta(seconds=secs)).strftime("%H:%M"),
+        )
+        time.sleep(secs)
+
+    def _schedule_power_off(self, sleep_min: int, soc: int) -> None:
+        """Schedule power off and wake up.
+
+        Args:
+            sleep_min: Minutes to sleep
+            soc: Battery state of charge
+        """
+        wake_dt = datetime.now() + timedelta(minutes=sleep_min)
+        schedule_wakeup(wake_dt)
+        logger.info(
+            "Powering off for %d min (SOC %d%%) → wake at %s",
+            sleep_min,
+            soc,
+            wake_dt.strftime("%H:%M"),
+        )
+        graceful_shutdown()
 
 
 # ───────────────────────── main command ─────────────────────────────────────
@@ -188,106 +439,9 @@ def run(
         "If omitted, value from config.yaml or the default URL is used.",
     ),
 ) -> None:
-    logging.basicConfig(
-        level=logging.DEBUG if debug else logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-    )
-
-    cfg_obj: WeatherConfig = load_config(config)
-    if serve and not preview:
-        typer.secho(
-            "--serve can only be used together with --preview",
-            fg=typer.colors.RED,
-            err=True,
-        )
-        raise typer.Exit(code=1)
-
-    load_icon_mapping()
-
-    # precedence: CLI flag ▸ YAML ▸ default
-    effective_url = stay_awake_url or cfg_obj.stay_awake_url or DEFAULT_STAY_AWAKE_URL
-
-    base_minutes = cfg_obj.refresh_minutes
-
-    pijuice = get_pijuice()
-    ensure_rtc_synced(pijuice)
-
-    error_streak = 0
-    last_full_refresh = datetime.now()
-
-    while True:
-        now = datetime.now()
-        # remote override
-        if should_stay_awake(effective_url):
-            logger.debug("Stay-awake flag true - overriding quiet hours")
-            in_quiet = False
-        else:
-            in_quiet = in_quiet_hours(now, cfg_obj.quiet_hours)
-
-        if in_quiet:
-            secs = seconds_until_quiet_end(now, cfg_obj.quiet_hours)
-            logger.info(
-                "Quiet hours active → sleeping %d min until %s",
-                secs // 60,
-                (now + timedelta(seconds=secs)).strftime("%H:%M"),
-            )
-            time.sleep(secs)
-            continue
-
-        full_refresh = datetime.now() - last_full_refresh > FULL_REFRESH_INTERVAL
-        soc = get_soc(pijuice)
-        is_charging: bool = False
-        battery_warning = False
-        if pijuice:
-            batt = get_battery_status(pijuice)
-            is_charging = batt["is_charging"]
-            battery_warning = batt["battery_warning"]
-
-        ok = cycle(
-            cfg_obj,
-            preview,
-            full_refresh,
-            soc,
-            is_charging,
-            battery_warning,
-            serve,
-            once,
-        )
-        if ok:
-            error_streak = 0
-            if full_refresh:
-                last_full_refresh = datetime.now()
-        else:
-            error_streak += 1
-            if error_streak >= 3:
-                logger.warning("3 consecutive failures → backing off x4 interval")
-                time.sleep(base_minutes * 4 * 60)
-                continue
-
-        if once:
-            break
-
-        sleep_min = get_refresh_delay_minutes(base_minutes, soc)
-        # decide whether to power off instead of sleep
-        if should_power_off(cfg_obj, soc, now):
-            wake_dt = datetime.now() + timedelta(minutes=sleep_min)
-            schedule_wakeup(wake_dt)
-            logger.info(
-                "Powering off for %d min (SOC %d%%) → wake at %s",
-                sleep_min,
-                soc,
-                wake_dt.strftime("%H:%M"),
-            )
-            graceful_shutdown()
-            break
-
-        logger.info(
-            "Battery %02d%% → sleeping %d min (%.1fx normal)",
-            soc,
-            sleep_min,
-            sleep_min / base_minutes,
-        )
-        time.sleep(sleep_min * 60)
+    """Run the weather display application."""
+    display = WeatherDisplay(config, debug)
+    display.run(preview, serve, once, stay_awake_url)
 
 
 # ───────────────────────── config sub‑commands ───────────────────────────────
