@@ -25,6 +25,7 @@ A self‑contained Python 3 application that turns a **Raspberry Pi Zero 2
 * Accurate SVG weather icons mapped from OpenWeather condition IDs (with day/night variants), powered by Weather Icons.
 * Optimized e-ink rendering modes (GC16 for full refresh, partial updates for speed and battery savings).
 * Preview mode renders to HTML and PNG without updating the e-ink display — useful for testing layouts or data.
+* **Pure‑Python SVG sprite build** – no Node or npm required; run one script to regenerate `sprite.svg`.
 
 A Typer‑based CLI (`weather`) replaces the old `python main.py` entry‑point: run `weather --help` for commands.
 
@@ -104,6 +105,18 @@ watchmedo shell-command \
 
 Every save automatically refreshes the browser tab—no Flask required.
 
+### Regenerate icon sprite
+
+Whenever you add or edit individual SVG icons, rebuild the consolidated
+`sprite.svg` via one command (no Node tool‑chain needed):
+
+```bash
+bash deploy/scripts/icons_build.sh
+```
+
+The script trims whitespace, converts fills to `currentColor`, and writes
+`static/icons/sprite.svg` in one pass. CI runs the same script to keep the
+sprite in sync.
 ---
 
 ## Manual Update
