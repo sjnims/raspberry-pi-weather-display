@@ -30,9 +30,9 @@ from rpiweather.display.epaper import display_png
 from rpiweather.display.error_ui import render_error_screen
 from rpiweather.display.render import (
     FULL_REFRESH_INTERVAL,
-    TEMPLATE,
-    build_dashboard_context,
-    html_to_png,
+    DashboardContextBuilder,
+    TemplateRenderer,
+    WkhtmlToPngRenderer,
 )
 from rpiweather.helpers import (
     get_refresh_delay_minutes,
@@ -42,6 +42,7 @@ from rpiweather.helpers import (
 )
 from rpiweather.power import graceful_shutdown, schedule_wakeup
 from rpiweather.remote import should_stay_awake
+from rpiweather.system.status import SystemStatus
 from rpiweather.types.pijuice import PiJuiceLike
 from rpiweather.weather import (
     WeatherAPI,
@@ -86,6 +87,11 @@ class WeatherDisplay:
         self.pijuice = self._initialize_pijuice()
         self.error_streak = 0
         self.last_full_refresh = datetime.now()
+
+        # Initialize renderers
+        self.template_renderer = TemplateRenderer()
+        self.context_builder = DashboardContextBuilder(self.config)
+        self.png_renderer = WkhtmlToPngRenderer()
 
         # Load weather icon mapping
         load_icon_mapping()
@@ -235,14 +241,17 @@ class WeatherDisplay:
                 return f"/static/{filename}"
             raise ValueError(f"Unsupported endpoint: {endpoint}")
 
-        # Build template context
-        ctx = build_dashboard_context(
-            self.config, weather, soc, is_charging, battery_warning
+        # Build template context using OO approach
+        status = SystemStatus(
+            soc=soc,
+            is_charging=is_charging,
+            battery_warning=battery_warning,
         )
+        ctx = self.context_builder.build_dashboard_context(weather, status)
         ctx["url_for"] = url_for
 
-        # Render HTML template
-        html = TEMPLATE.render(**ctx)  # type: ignore
+        # Render HTML template using OO approach
+        html = self.template_renderer.render_dashboard(**ctx)
         out_dir = Path("preview")
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -250,9 +259,9 @@ class WeatherDisplay:
         png_path = out_dir / "dash.png"
         html_path.write_text(html, encoding="utf-8")
 
-        # Generate PNG for display
+        # Generate PNG for display using OO approach
         if not preview:
-            html_to_png(html, png_path, preview=False)
+            self.png_renderer.render_to_image(html, png_path)
 
         # Serve preview in browser if requested
         if serve and preview and once:
@@ -290,11 +299,13 @@ class WeatherDisplay:
         """
         with tempfile.TemporaryDirectory() as td:
             error_png = Path(td) / "error.png"
+
+            # Use the PNG renderer directly instead of passing a function
             render_error_screen(
                 f"API Error ({error.code}): {error.message}",
                 soc,
                 is_charging,
-                html_to_png_func=html_to_png,
+                html_to_png_func=self.png_renderer.render_to_image,
                 out_path=error_png,
             )
             display_png(error_png)

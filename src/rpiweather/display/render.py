@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import platform
-import re
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -30,6 +29,8 @@ from rpiweather.weather.helpers import (
 class TemplateRenderer:
     """Handles Jinja2 template environment and rendering."""
 
+    dashboard_template: Template
+
     def __init__(self, templates_dir: Optional[Path] = None) -> None:
         """Initialize the template renderer.
 
@@ -49,7 +50,6 @@ class TemplateRenderer:
         # Register filters
         self._register_filters()
 
-        # Load main dashboard template
         self.dashboard_template = self.env.get_template("dashboard.html.j2")
 
     def _register_filters(self) -> None:
@@ -83,7 +83,7 @@ class TemplateRenderer:
             fmt = "%-I %p"
         return d.strftime(fmt)
 
-    def render_dashboard(self, context: Dict[str, Any]) -> str:
+    def render_dashboard(self, **context: Any) -> str:
         """Render the dashboard template with the provided context.
 
         Args:
@@ -205,58 +205,9 @@ class DashboardContextBuilder:
 
 # Then use them
 _renderer: TemplateRenderer = TemplateRenderer()
-_context_builder: Optional[DashboardContextBuilder] = None  # Will be lazily initialized
 
 # Add this constant with type annotation
 FULL_REFRESH_INTERVAL: timedelta = timedelta(hours=6)
-
-
-# Legacy function wrappers that use the OO implementation
-def html_to_png(html: str, out: Path, preview: bool = False) -> None:
-    """Convert HTML to PNG using the OO renderer."""
-    if preview and platform.system() != "Linux":
-        # Preview mode for non-Linux systems
-        project_root = Path(__file__).resolve().parents[3]
-        out_dir = project_root / "preview"
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        html_path = out_dir / "dash-preview.html"
-        html_local = re.sub(r'(href|src)="/static/', r'\1="static/', html)
-        html_path.write_text(html_local, "utf-8")
-
-        import webbrowser
-
-        webbrowser.open(html_path.as_uri())
-        return
-
-    # Use the OO renderer
-    renderer = WkhtmlToPngRenderer()
-    renderer.render_to_image(html, out)
-
-
-def build_dashboard_context(
-    cfg: WeatherConfig,
-    weather: WeatherResponse,
-    soc: int,
-    is_charging: bool,
-    battery_warning: bool,
-) -> Dict[str, Any]:
-    """Build context using the OO context builder."""
-    global _context_builder
-    if _context_builder is None:
-        _context_builder = DashboardContextBuilder(cfg)
-
-    status = SystemStatus(
-        soc=soc,
-        is_charging=is_charging,
-        battery_warning=battery_warning,
-    )
-
-    return _context_builder.build_dashboard_context(weather, status)
-
-
-# Export the template from the singleton
-TEMPLATE = _renderer.dashboard_template
 
 
 class WkhtmlToPngRenderer(HtmlRenderer):
