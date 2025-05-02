@@ -26,10 +26,17 @@ from pydantic import ValidationError
 
 # ── rpiweather packages ──────────────────────────────────────────────────────
 from rpiweather.config import WeatherConfig, load_config
-from rpiweather.display.epaper import display_png
+from rpiweather.display.epaper import IT8951Display
+from rpiweather.display.protocols import DisplayDriver
 from rpiweather.display.error_ui import render_error_screen
-from rpiweather.display.render import (
+from rpiweather.constants import (
+    PREVIEW_DIR,
+    PREVIEW_HTML_NAME,
+    PREVIEW_PNG_NAME,
     FULL_REFRESH_INTERVAL,
+    RefreshMode,
+)
+from rpiweather.display.render import (
     DashboardContextBuilder,
     TemplateRenderer,
     WkhtmlToPngRenderer,
@@ -51,6 +58,7 @@ from rpiweather.weather import (
     get_battery_status,
     load_icon_mapping,
 )
+from rpiweather.scheduler import Scheduler
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
 app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)
@@ -68,7 +76,12 @@ class WeatherDisplay:
 
     pijuice: Optional[PiJuiceLike]  # Add this explicit field type
 
-    def __init__(self, config_path: Path, debug: bool = False):
+    def __init__(
+        self,
+        config_path: Path,
+        display_driver: DisplayDriver | None = None,
+        debug: bool = False,
+    ):
         """Initialize the weather display controller.
 
         Args:
@@ -92,6 +105,9 @@ class WeatherDisplay:
         self.template_renderer = TemplateRenderer()
         self.context_builder = DashboardContextBuilder(self.config)
         self.png_renderer = WkhtmlToPngRenderer()
+
+        # Dependency-injected display driver
+        self.display_driver = display_driver or IT8951Display()
 
         # Load weather icon mapping
         load_icon_mapping()
@@ -235,12 +251,6 @@ class WeatherDisplay:
             True if rendering was successful
         """
 
-        # Provide a strictly-typed url_for for templates
-        def url_for(endpoint: str, filename: str = "") -> str:
-            if endpoint == "static":
-                return f"/static/{filename}"
-            raise ValueError(f"Unsupported endpoint: {endpoint}")
-
         # Build template context using OO approach
         status = SystemStatus(
             soc=soc,
@@ -248,15 +258,14 @@ class WeatherDisplay:
             battery_warning=battery_warning,
         )
         ctx = self.context_builder.build_dashboard_context(weather, status)
-        ctx["url_for"] = url_for
 
         # Render HTML template using OO approach
-        html = self.template_renderer.render_dashboard(**ctx)
-        out_dir = Path("preview")
+        html = self.template_renderer.dashboard_template.render(**ctx)  # type: ignore[reportUnknownMemberType]
+        out_dir = Path(PREVIEW_DIR)
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        html_path = out_dir / "dash-preview.html"
-        png_path = out_dir / "dash.png"
+        html_path = out_dir / PREVIEW_HTML_NAME
+        png_path = out_dir / PREVIEW_PNG_NAME
         html_path.write_text(html, encoding="utf-8")
 
         # Generate PNG for display using OO approach
@@ -269,13 +278,14 @@ class WeatherDisplay:
 
         # Update e-ink display
         if not preview:
-            display_png(png_path, mode_override=0 if full_refresh else 2)
+            mode = RefreshMode.FULL if full_refresh else RefreshMode.GREYSCALE
+            self.display_driver.display_image(png_path, mode=mode)
 
         return True
 
     def _serve_preview_in_browser(self) -> None:
         """Start HTTP server and open browser for preview."""
-        url = "http://localhost:8000/dash-preview.html"
+        url = f"http://localhost:8000/{PREVIEW_HTML_NAME}"
         typer.echo(f"Serving preview on {url} - press Ctrl-C to quit")
 
         try:
@@ -284,7 +294,7 @@ class WeatherDisplay:
             logger.debug("Could not open browser: %s", exc)
 
         subprocess.call(
-            ["python3", "-m", "http.server", "8000", "--directory", "preview"]
+            ["python3", "-m", "http.server", "8000", "--directory", PREVIEW_DIR]
         )
 
     def _render_error_screen(
@@ -308,7 +318,7 @@ class WeatherDisplay:
                 html_to_png_func=self.png_renderer.render_to_image,
                 out_path=error_png,
             )
-            display_png(error_png)
+            self.display_driver.display_image(error_png)
 
     def run(
         self,
@@ -451,8 +461,9 @@ def run(
     ),
 ) -> None:
     """Run the weather display application."""
-    display = WeatherDisplay(config, debug)
-    display.run(preview, serve, once, stay_awake_url)
+    display = WeatherDisplay(config, display_driver=IT8951Display(), debug=debug)
+    scheduler = Scheduler(display, stay_awake_url)
+    scheduler.run(preview, serve, once)
 
 
 # ───────────────────────── config sub‑commands ───────────────────────────────

@@ -80,6 +80,36 @@ class QuietHoursManager:
         return int((candidate - ts).total_seconds())
 
 
+class QuietHoursHelper:
+    """Encapsulates quiet hours configuration and operations."""
+
+    def __init__(self, quiet: Optional[QuietHours]) -> None:
+        self._quiet = quiet
+
+    def is_quiet(self, ts: datetime) -> bool:
+        """Return True if *ts* is within the configured quiet hours."""
+        return in_quiet_hours(ts, self._quiet)
+
+    def seconds_until_end(self, ts: datetime) -> int:
+        """Return seconds until quiet hours end, or 0 if not in quiet hours."""
+        return QuietHoursManager.seconds_until_quiet_end(ts, self._quiet)
+
+
+class PowerManager:
+    """Encapsulates battery refresh delay and power-off logic based on config."""
+
+    def __init__(self, cfg: WeatherConfig) -> None:
+        self._cfg = cfg
+
+    def get_refresh_delay(self, base_minutes: int, soc: int) -> int:
+        """Return adjusted refresh interval based on battery SoC."""
+        return BatteryManager.get_refresh_delay_minutes(base_minutes, soc)
+
+    def should_power_off(self, soc: int, now: datetime) -> bool:
+        """Return True if the system should power off now."""
+        return BatteryManager.should_power_off(self._cfg, soc, now)
+
+
 # Legacy functions for backward compatibility
 def in_quiet_hours(ts: datetime, quiet: Optional[QuietHours]) -> bool:
     """Return ``True`` if *ts* falls inside the user-defined quiet-hour window.
@@ -134,4 +164,6 @@ __all__ = [
     "should_power_off",
     "BatteryManager",
     "QuietHoursManager",
+    "QuietHoursHelper",
+    "PowerManager",
 ]

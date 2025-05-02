@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Protocol, runtime_checkable
+from rpiweather.constants import RefreshMode
 
 
 class HtmlRenderer(Protocol):
@@ -21,11 +22,18 @@ class HtmlRenderer(Protocol):
 class Display(Protocol):
     """Protocol defining the interface for display devices."""
 
-    def display_image(self, image_path: Path, full_refresh: bool = False) -> None:
+    def display_image(
+        self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE
+    ) -> None:
         """Display an image on the device.
 
         Args:
             image_path: Path to the image file
-            full_refresh: If True, perform a full refresh cycle
+            mode: RefreshMode
+                Which refresh mode to use (FULL or GREYSCALE)
         """
         ...
+
+
+# Alias for the display protocol, for clearer DI naming
+DisplayDriver = Display

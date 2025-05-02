@@ -6,9 +6,10 @@ from typing import Callable, Optional, Protocol
 
 from jinja2 import Template
 
-from rpiweather.display.protocols import Display
+from rpiweather.display.protocols import DisplayDriver
 from rpiweather.system.status import SystemStatus
-from rpiweather.display.epaper import create_display
+from rpiweather.display.epaper import IT8951Display
+from rpiweather.constants import RefreshMode
 
 
 class HtmlRenderer(Protocol):
@@ -91,18 +92,18 @@ class ErrorRenderer:
     def __init__(
         self,
         html_renderer: HtmlRenderer,
-        display: Optional[Display] = None,
+        display_driver: DisplayDriver | None = None,
         template: Optional[str] = None,
     ) -> None:
         """Initialize the error renderer.
 
         Args:
             html_renderer: Renderer to convert HTML to images
-            display: Display device (creates default if None)
+            display_driver: Display device (creates default if None)
             template: Custom error template (uses default if None)
         """
         self.html_renderer = html_renderer
-        self.display = display or create_display()
+        self.display_driver = display_driver or IT8951Display()
         self.template = Template(template or self.ERROR_TEMPLATE)
 
     def render_error(
@@ -138,16 +139,12 @@ class ErrorRenderer:
         # Render template to HTML (Option 1)
         html_content = template.render(**typed_context)  # type: ignore
 
-        # OR (Option 2)
-        # from jinja2.runtime import Context
-        # html_content = cast(str, template.render(**context))
-
         # Convert to image
         self.html_renderer.render_to_image(html_content, output_path)
 
         # Display if requested
         if display_immediately:
-            self.display.display_image(output_path, full_refresh=False)
+            self.display_driver.display_image(output_path, mode=RefreshMode.GREYSCALE)
 
 
 # Compatibility function for backward compatibility

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import platform
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, cast
 from zoneinfo import ZoneInfo
@@ -45,6 +45,25 @@ class TemplateRenderer:
         self.env = Environment(
             loader=FileSystemLoader(self.templates_dir),
             autoescape=select_autoescape(["html"]),
+        )
+
+        # Register template globals (static asset helpers)
+        def _static_url(path: str) -> str:
+            """Return a web-relative URL for static assets."""
+            return f"static/{path}"
+
+        def _url_for(endpoint: str, filename: str = "") -> str:
+            """Simple url_for implementation for static assets."""
+            if endpoint == "static":
+                return f"static/{filename}"
+            raise ValueError(f"Unsupported endpoint: {endpoint}")
+
+        # Expose under common names in templates
+        self.env.globals.update(
+            {
+                "static_url": _static_url,
+                "url_for": _url_for,
+            }
         )
 
         # Register filters
@@ -205,9 +224,6 @@ class DashboardContextBuilder:
 
 # Then use them
 _renderer: TemplateRenderer = TemplateRenderer()
-
-# Add this constant with type annotation
-FULL_REFRESH_INTERVAL: timedelta = timedelta(hours=6)
 
 
 class WkhtmlToPngRenderer(HtmlRenderer):
