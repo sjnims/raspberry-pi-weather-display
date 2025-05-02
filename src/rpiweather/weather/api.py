@@ -309,22 +309,3 @@ class WeatherAPI:
         # Precompute weekday_short string for each daily forecast object
         for d in weather.daily:
             d.weekday_short = d.dt.astimezone().strftime("%a")
-
-
-# Legacy functions for backward compatibility
-def fetch_weather(cfg: WeatherConfig) -> WeatherResponse:
-    """Retrieve weather and air quality data."""
-    api = WeatherAPI(cfg)
-    return api.fetch_weather()
-
-
-def fetch_air_quality(cfg: WeatherConfig) -> dict[str, Any]:
-    """Retrieve air quality data from OpenWeather API."""
-    api = WeatherAPI(cfg)
-    return api.fetch_air_quality()
-
-
-def build_context(cfg: WeatherConfig, weather: WeatherResponse) -> dict[str, Any]:
-    """Transform raw API JSON into template-friendly context."""
-    api = WeatherAPI(cfg)
-    return api.build_context(weather)

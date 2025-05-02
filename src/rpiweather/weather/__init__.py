@@ -6,7 +6,7 @@ __version__ = "0.1.0"
 from .models import WeatherResponse, Current, Hourly, Daily
 from .air_quality import AirQuality
 from .errors import WeatherAPIError, NetworkError, ParseError
-from .api import WeatherAPI, fetch_weather, build_context
+from .api import WeatherAPI
 
 # Import common helper functions
 from .helpers import (
@@ -25,8 +25,6 @@ from .helpers import (
 __all__ = [
     # Main API
     "WeatherAPI",
-    "fetch_weather",
-    "build_context",
     # Models
     "WeatherResponse",
     "Current",

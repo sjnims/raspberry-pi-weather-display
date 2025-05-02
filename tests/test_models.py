@@ -7,7 +7,7 @@ import pytest
 from typing import Any
 from pydantic import ValidationError
 
-from rpiweather.weather.api import build_context
+from rpiweather.weather.api import WeatherAPI
 from rpiweather.weather.models import WeatherResponse
 from rpiweather.config import WeatherConfig
 
@@ -79,7 +79,7 @@ def test_build_context_basic(
     """build_context returns expected keys for template rendering."""
     wx = weather_response
 
-    ctx = build_context(dummy_config, wx)
+    ctx = WeatherAPI(dummy_config).build_context(wx)
     assert "date" in ctx  # basic sanity check so ctx is used
 
 
@@ -100,5 +100,5 @@ def test_build_context_contains_key(
     weather_response: WeatherResponse, dummy_config: WeatherConfig, ctx_key: str
 ) -> None:
     """Each expected key should be present in the build_context output."""
-    ctx = build_context(dummy_config, weather_response)
+    ctx = WeatherAPI(dummy_config).build_context(weather_response)
     assert ctx_key in ctx
