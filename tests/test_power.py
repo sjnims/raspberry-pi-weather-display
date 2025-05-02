@@ -26,7 +26,7 @@ def test_graceful_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _FakeSubprocess()
     monkeypatch.setattr(power, "subprocess", fake, raising=False)
 
-    power.graceful_shutdown()
+    PowerManager().shutdown()
 
     assert fake.called["cmd"] == ["sudo", "shutdown", "-h", "now"]
     assert fake.called["kwargs"]["check"] is True  # type: ignore[index]

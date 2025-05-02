@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from rpiweather.config import QuietHours
-from rpiweather.power import in_quiet_hours, seconds_until_quiet_end
+from rpiweather.power import QuietHoursHelper, QuietHoursManager
 
 
 # ---------------------------------------------------------------------------
@@ -16,22 +16,22 @@ def dt(hour: int, minute: int = 0) -> datetime:  # noqa: D401
 # ── same‑day window (01→05) ────────────────────────────────────────────────
 def test_in_quiet_hours_same_day():
     q = QuietHours(start=1, end=5)
-    assert in_quiet_hours(dt(2), q) is True
-    assert in_quiet_hours(dt(0), q) is False
-    assert in_quiet_hours(dt(5), q) is False  # end exclusive
+    assert QuietHoursHelper(q).is_quiet(dt(2)) is True
+    assert QuietHoursHelper(q).is_quiet(dt(0)) is False
+    assert QuietHoursHelper(q).is_quiet(dt(5)) is False  # end exclusive
 
 
 # ── wrapping‑midnight window (22→6) ─────────────────────────────────────────
 def test_in_quiet_hours_wrap_midnight():
     q = QuietHours(start=22, end=6)
-    assert in_quiet_hours(dt(23), q) is True
-    assert in_quiet_hours(dt(3), q) is True
-    assert in_quiet_hours(dt(7), q) is False
+    assert QuietHoursHelper(q).is_quiet(dt(23)) is True
+    assert QuietHoursHelper(q).is_quiet(dt(3)) is True
+    assert QuietHoursHelper(q).is_quiet(dt(7)) is False
 
 
 # ── disabled (None) ────────────────────────────────────────────────────────
 def test_in_quiet_hours_disabled():
-    assert in_quiet_hours(dt(12), None) is False
+    assert QuietHoursHelper(None).is_quiet(dt(12)) is False
 
 
 # ── seconds_until_quiet_end ────────────────────────────────────────────────
@@ -50,4 +50,4 @@ def test_seconds_until_quiet_end(
     expected: int,
 ) -> None:
     q = QuietHours(start=start, end=end)
-    assert seconds_until_quiet_end(dt(now_h), q) == expected
+    assert QuietHoursManager.seconds_until_quiet_end(dt(now_h), q) == expected
