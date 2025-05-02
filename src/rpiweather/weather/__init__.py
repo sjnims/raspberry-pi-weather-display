@@ -9,13 +9,14 @@ from .errors import WeatherAPIError, NetworkError, ParseError
 from .api import WeatherAPI
 
 # Import common helper functions
-from .helpers import (
+from .utils import (
     WeatherIcons,
     UnitConverter,
     PrecipitationUtils,
-    BatteryUtils,
-    PiJuiceLike,  # Add this import
 )
+
+from rpiweather.system.utils import BatteryUtils
+from rpiweather.types import PiJuiceLike
 
 # Define what gets imported with: from rpiweather.weather import *
 __all__ = [
@@ -36,5 +37,5 @@ __all__ = [
     "UnitConverter",
     "PrecipitationUtils",
     "BatteryUtils",
-    "PiJuiceLike",  # Add this to the __all__ list
+    "PiJuiceLike",
 ]

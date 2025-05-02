@@ -11,7 +11,7 @@ import logging
 import requests
 from .models import WeatherResponse
 from .errors import WeatherAPIError, NetworkError
-from .helpers import (
+from .utils import (
     UnitConverter,
     WeatherIcons,
     PrecipitationUtils,

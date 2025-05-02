@@ -15,7 +15,7 @@ from rpiweather.config import WeatherConfig
 from rpiweather.display.protocols import HtmlRenderer
 from rpiweather.system.status import SystemStatus
 from rpiweather.weather.api import WeatherResponse
-from rpiweather.weather.helpers import (
+from rpiweather.weather.utils import (
     WeatherIcons,
     UnitConverter,
     PrecipitationUtils,

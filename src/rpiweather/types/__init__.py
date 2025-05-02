@@ -8,10 +8,14 @@ from .pijuice import (
     PiJuiceLike,
 )
 
+from .weather import WeatherObj, PrecipObj
+
 __all__ = [
     "BatteryStatusDict",
     "PiJuiceStatusDict",
     "RTCInterface",
     "StatusInterface",
     "PiJuiceLike",
+    "WeatherObj",
+    "PrecipObj",
 ]
