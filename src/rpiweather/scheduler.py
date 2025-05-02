@@ -2,7 +2,7 @@
 
 import time
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional, TYPE_CHECKING
 
 from rpiweather.constants import (
@@ -12,6 +12,7 @@ from rpiweather.constants import (
 )
 from rpiweather.remote import create_wake_state_provider
 from rpiweather.power import QuietHoursHelper, PowerManager, BatteryManager
+from rpiweather.utils import TimeUtils
 
 if TYPE_CHECKING:
     from rpiweather.cli import WeatherDisplay
@@ -51,7 +52,7 @@ class Scheduler:
         battery_manager = BatteryManager(self.config)
 
         while True:
-            now = datetime.now()
+            now = TimeUtils.now_localized()
 
             # Remote “stay awake” override
             wake_provider = create_wake_state_provider(self.stay_awake_url)
@@ -89,7 +90,7 @@ class Scheduler:
                 # Reset error counter and update full-refresh timestamp
                 self.display.error_streak = 0
                 if full_refresh_needed:
-                    self.display.last_full_refresh = datetime.now()
+                    self.display.last_full_refresh = TimeUtils.now_localized()
             else:
                 # Increment error streak and back off if too many failures
                 self.display.error_streak += 1
@@ -108,13 +109,13 @@ class Scheduler:
 
             # Handle power-off condition
             if battery_manager.should_power_off(soc, now):
-                wake_dt = datetime.now() + timedelta(minutes=sleep_min)
+                wake_dt = TimeUtils.now_localized() + timedelta(minutes=sleep_min)
                 power_manager.schedule_wakeup(wake_dt)
                 logger.info(
                     "Powering off for %d min (SOC %d%%) → wake at %s",
                     sleep_min,
                     soc,
-                    wake_dt.strftime("%H:%M"),
+                    TimeUtils.format_datetime(wake_dt, "%H:%M"),
                 )
                 power_manager.shutdown()
                 break

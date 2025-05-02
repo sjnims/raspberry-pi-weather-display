@@ -20,6 +20,7 @@ from rpiweather.weather.utils import (
     UnitConverter,
     PrecipitationUtils,
 )
+from rpiweather.utils import TimeUtils
 
 
 # Define classes first
@@ -77,8 +78,8 @@ class TemplateRenderer:
                 "moon_phase_icon": WeatherIcons.get_moon_phase_icon,
                 "moon_phase_label": WeatherIcons.get_moon_phase_label,
                 "wind_rotation": self._wind_rotation,
-                "ts_to_dt": self._ts_to_local,
-                "strftime": self._dt_format,
+                "ts_to_dt": TimeUtils.to_local_datetime,
+                "strftime": TimeUtils.format_datetime,
             }
         )
 
@@ -147,7 +148,7 @@ class DashboardContextBuilder:
         Returns:
             Template context dictionary
         """
-        now = datetime.now(ZoneInfo(self.config.timezone))
+        now = TimeUtils.now_localized()
         today_local = now.date()
 
         # Extract UV index data
@@ -168,7 +169,9 @@ class DashboardContextBuilder:
         # Sun and moon information
         sunrise_dt = weather.current.sunrise
         sunset_dt = weather.current.sunset
-        sunrise_str = sunrise_dt.strftime(self.config.time_format_general)
+        sunrise_str = TimeUtils.format_datetime(
+            sunrise_dt, self.config.time_format_general
+        )
         sunset_str = sunset_dt.strftime(self.config.time_format_general)
         moon_phase = weather.daily[0].moon_phase if weather.daily else 0.0
 
@@ -218,7 +221,7 @@ class DashboardContextBuilder:
             "current": weather.current,
             "hourly_precip": PrecipitationUtils.hourly_precip,
             "city": self.config.city,
-            "daylight": f"{(sunset_dt - sunrise_dt).seconds // 3600}h {(sunset_dt - sunrise_dt).seconds % 60}m",
+            "daylight": TimeUtils.get_time_difference_string(sunrise_dt, sunset_dt),
             "uvi_max": max((uvi[1] for uvi in uvi_slice), default=0),
             "uvi_occurred": max_uvi_time is not None and now > max_uvi_time,
             "bft": UnitConverter.beaufort_from_speed(weather.current.wind_speed),

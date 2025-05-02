@@ -19,6 +19,7 @@ from .utils import (
 
 from rpiweather.config import WeatherConfig
 from rpiweather.weather.models import Daily
+from rpiweather.utils import TimeUtils
 
 logger = logging.getLogger(__name__)
 
@@ -253,9 +254,7 @@ class WeatherAPI:
         if uvi_data:
             max_uvi_entry = max(uvi_data, key=lambda x: x[1])
             max_uvi_value = max_uvi_entry[1]
-            max_uvi_time = datetime.fromtimestamp(
-                max_uvi_entry[0], tz=timezone.utc
-            ).astimezone()
+            max_uvi_time = TimeUtils.to_local_datetime(max_uvi_entry[0], "UTC")
         else:  # late in day, fallback
             max_uvi_value = weather.current.uvi or 0.0
             max_uvi_time = now

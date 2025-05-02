@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 
@@ -11,17 +11,17 @@ class TimeUtils:
     """Utilities for date and time operations."""
 
     @staticmethod
-    def to_local_datetime(timestamp: int, timezone: str = "UTC") -> datetime:
+    def to_local_datetime(timestamp: int, timezone_name: str = "UTC") -> datetime:
         """Convert POSIX timestamp to local datetime.
 
         Args:
             timestamp: POSIX timestamp
-            timezone: Timezone name
+            timezone_name: Timezone name
 
         Returns:
             Localized datetime object
         """
-        return datetime.fromtimestamp(timestamp, tz=ZoneInfo(timezone))
+        return datetime.fromtimestamp(timestamp, tz=ZoneInfo(timezone_name))
 
     @staticmethod
     def format_datetime(dt: datetime, format_string: str) -> str:
@@ -51,3 +51,12 @@ class TimeUtils:
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
         return f"{hours}h {minutes}m"
+
+    @staticmethod
+    def now_localized() -> datetime:
+        """Get current datetime with local timezone.
+
+        Returns:
+            Current datetime with local timezone
+        """
+        return datetime.now(timezone.utc).astimezone()

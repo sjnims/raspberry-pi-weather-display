@@ -13,7 +13,6 @@ import subprocess
 import sys
 import tempfile
 import webbrowser
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo
@@ -41,6 +40,7 @@ from rpiweather.display.render import (
 )
 from rpiweather.system.status import SystemStatus
 from rpiweather.types.pijuice import PiJuiceLike
+from rpiweather.utils import TimeUtils
 from rpiweather.weather import (
     WeatherAPI,
     WeatherAPIError,
@@ -89,7 +89,7 @@ class WeatherDisplay:
         self.weather_api = WeatherAPI(self.config)
         self.pijuice = self._initialize_pijuice()
         self.error_streak = 0
-        self.last_full_refresh = datetime.now()
+        self.last_full_refresh = TimeUtils.now_localized()
 
         # Initialize renderers
         self.template_renderer = TemplateRenderer()
