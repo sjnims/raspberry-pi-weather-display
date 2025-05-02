@@ -10,7 +10,7 @@ from rpiweather.constants import (
     FULL_REFRESH_INTERVAL,
     RefreshMode,
 )
-from rpiweather.remote import should_stay_awake
+from rpiweather.remote import create_wake_state_provider
 from rpiweather.power import QuietHoursHelper, PowerManager, BatteryManager
 
 if TYPE_CHECKING:
@@ -54,7 +54,8 @@ class Scheduler:
             now = datetime.now()
 
             # Remote “stay awake” override
-            if should_stay_awake(self.stay_awake_url):
+            wake_provider = create_wake_state_provider(self.stay_awake_url)
+            if wake_provider.should_stay_awake():
                 logger.debug("Stay-awake flag true → bypassing quiet hours")
                 in_quiet = False
             else:

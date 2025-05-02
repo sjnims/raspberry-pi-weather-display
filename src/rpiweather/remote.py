@@ -96,18 +96,3 @@ def create_wake_state_provider(url: str = "") -> WakeStateProvider:
     if not url:
         return AlwaysAwakeProvider()
     return HttpWakeStateProvider(url)
-
-
-# Legacy function for backward compatibility
-def should_stay_awake(url: str, timeout: float = 3.0) -> bool:
-    """Legacy function to maintain backward compatibility.
-
-    Args:
-        url: URL to query for wake state
-        timeout: Timeout for HTTP request in seconds
-
-    Returns:
-        True only if endpoint explicitly returns {"awake": true}
-    """
-    provider = HttpWakeStateProvider(url, timeout)
-    return provider.should_stay_awake()

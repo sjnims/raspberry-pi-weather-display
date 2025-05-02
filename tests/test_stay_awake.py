@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 import pytest
-from rpiweather.remote import should_stay_awake
+from rpiweather.remote import create_wake_state_provider
 import requests
 
 
@@ -42,7 +42,7 @@ def test_awake_true(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_get,
         raising=True,
     )
-    assert should_stay_awake("http://dummy") is True
+    assert create_wake_state_provider("http://dummy").should_stay_awake() is True
 
 
 def test_awake_false(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -50,7 +50,7 @@ def test_awake_false(monkeypatch: pytest.MonkeyPatch) -> None:
         return _MockResponse(200, {"awake": False})
 
     monkeypatch.setattr("rpiweather.remote.requests.get", mock_get, raising=True)
-    assert should_stay_awake("http://dummy") is False
+    assert create_wake_state_provider("http://dummy").should_stay_awake() is False
 
 
 @pytest.mark.parametrize(
@@ -68,7 +68,7 @@ def test_fail_closed(
         return resp
 
     monkeypatch.setattr("rpiweather.remote.requests.get", mock_get, raising=True)
-    assert should_stay_awake("http://dummy") is False
+    assert create_wake_state_provider("http://dummy").should_stay_awake() is False
 
 
 def test_network_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -76,4 +76,4 @@ def test_network_error(monkeypatch: pytest.MonkeyPatch) -> None:
         raise requests.exceptions.Timeout("network down")
 
     monkeypatch.setattr("rpiweather.remote.requests.get", mock_get, raising=True)
-    assert should_stay_awake("http://dummy") is False
+    assert create_wake_state_provider("http://dummy").should_stay_awake() is False
