@@ -12,12 +12,9 @@ import requests
 from .models import WeatherResponse
 from .errors import WeatherAPIError, NetworkError
 from .helpers import (
-    deg_to_cardinal,
-    get_weather_icon_filename,
-    beaufort_from_speed,
-    hourly_precip,
-    get_moon_phase_icon_filename,
-    get_moon_phase_label,
+    UnitConverter,
+    WeatherIcons,
+    PrecipitationUtils,
 )
 
 from rpiweather.config import WeatherConfig
@@ -211,23 +208,25 @@ class WeatherAPI:
             "aqi": aqi,
             "moon_phase": moon_phase,
             # wind / Beaufort
-            "bft": beaufort_from_speed(speed),
+            "bft": UnitConverter.beaufort_from_speed(speed),
             # forecast slices
             "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][
                 : cfg.hourly_count
             ],
             "daily": future_daily,
             # helper filters
-            "deg_to_cardinal": deg_to_cardinal,
+            "deg_to_cardinal": UnitConverter.deg_to_cardinal,
             "arrow_deg": arrow_deg,
-            "weather_icon": get_weather_icon_filename,
+            "weather_icon": WeatherIcons.get_icon_filename,
             # bind metric/imperial choice once so templates stay simple
             "hourly_precip": cast(
                 Callable[[Any], str],
-                partial(hourly_precip, imperial=(cfg.units == "imperial")),
+                partial(
+                    PrecipitationUtils.hourly_precip, imperial=(cfg.units == "imperial")
+                ),
             ),
-            "moon_phase_icon": get_moon_phase_icon_filename,
-            "moon_phase_label": get_moon_phase_label,
+            "moon_phase_icon": WeatherIcons.get_moon_phase_icon,
+            "moon_phase_label": WeatherIcons.get_moon_phase_label,
         }
 
     # Private helper methods

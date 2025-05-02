@@ -16,13 +16,9 @@ from rpiweather.display.protocols import HtmlRenderer
 from rpiweather.system.status import SystemStatus
 from rpiweather.weather.api import WeatherResponse
 from rpiweather.weather.helpers import (
-    beaufort_from_speed,
-    deg_to_cardinal,
-    get_moon_phase_icon_filename,
-    get_moon_phase_label,
-    get_weather_icon_filename,
-    hourly_precip,
-    hpa_to_inhg,
+    WeatherIcons,
+    UnitConverter,
+    PrecipitationUtils,
 )
 
 
@@ -76,10 +72,10 @@ class TemplateRenderer:
         """Register custom filters with the Jinja environment."""
         self.env.filters.update(
             {
-                "deg_to_cardinal": deg_to_cardinal,
-                "weather_icon": get_weather_icon_filename,
-                "moon_phase_icon": get_moon_phase_icon_filename,
-                "moon_phase_label": get_moon_phase_label,
+                "deg_to_cardinal": UnitConverter.deg_to_cardinal,
+                "weather_icon": WeatherIcons.get_icon_filename,
+                "moon_phase_icon": WeatherIcons.get_moon_phase_icon,
+                "moon_phase_label": WeatherIcons.get_moon_phase_label,
                 "wind_rotation": self._wind_rotation,
                 "ts_to_dt": self._ts_to_local,
                 "strftime": self._dt_format,
@@ -193,7 +189,9 @@ class DashboardContextBuilder:
         # Pressure conversion: OpenWeather returns pressure in hPa
         pressure_hpa = weather.current.pressure
         pressure_value = (
-            pressure_hpa if self.config.units == "metric" else hpa_to_inhg(pressure_hpa)
+            pressure_hpa
+            if self.config.units == "metric"
+            else UnitConverter.hpa_to_inhg(pressure_hpa)
         )
 
         # Build the complete context
@@ -214,16 +212,16 @@ class DashboardContextBuilder:
             "sunrise": sunrise_str,
             "sunset": sunset_str,
             "moon_phase": moon_phase,
-            "moon_phase_icon": get_moon_phase_icon_filename,
-            "moon_phase_label": get_moon_phase_label,
+            "moon_phase_icon": WeatherIcons.get_moon_phase_icon,
+            "moon_phase_label": WeatherIcons.get_moon_phase_label,
             "uvi_time": max_uvi_time_str,
             "current": weather.current,
-            "hourly_precip": hourly_precip,
+            "hourly_precip": PrecipitationUtils.hourly_precip,
             "city": self.config.city,
             "daylight": f"{(sunset_dt - sunrise_dt).seconds // 3600}h {(sunset_dt - sunrise_dt).seconds % 60}m",
             "uvi_max": max((uvi[1] for uvi in uvi_slice), default=0),
             "uvi_occurred": max_uvi_time is not None and now > max_uvi_time,
-            "bft": beaufort_from_speed(weather.current.wind_speed),
+            "bft": UnitConverter.beaufort_from_speed(weather.current.wind_speed),
             "aqi": weather.air_quality.aqi if weather.air_quality else "N/A",
         }
 

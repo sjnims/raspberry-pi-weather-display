@@ -44,9 +44,9 @@ from rpiweather.types.pijuice import PiJuiceLike
 from rpiweather.weather import (
     WeatherAPI,
     WeatherAPIError,
+    WeatherIcons,
     WeatherResponse,
-    get_battery_status,
-    load_icon_mapping,
+    BatteryUtils,
 )
 from rpiweather.scheduler import Scheduler
 
@@ -100,7 +100,7 @@ class WeatherDisplay:
         self.display_driver = display_driver or IT8951Display()
 
         # Load weather icon mapping
-        load_icon_mapping()
+        WeatherIcons.load_mapping()
 
     def _initialize_pijuice(self) -> Optional["PiJuiceLike"]:
         """Initialize PiJuice hardware interface if available."""
@@ -145,7 +145,7 @@ class WeatherDisplay:
         if self.pijuice:
             try:
                 soc = self.pijuice.status.GetChargeLevel()["data"]  # type: ignore
-                batt = get_battery_status(self.pijuice)
+                batt = BatteryUtils.get_battery_status(self.pijuice)
                 is_charging = batt["is_charging"]
                 battery_warning = batt.get("battery_warning", False)
             except Exception as exc:

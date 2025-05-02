@@ -10,14 +10,10 @@ from .api import WeatherAPI
 
 # Import common helper functions
 from .helpers import (
-    get_weather_icon_filename,
-    deg_to_cardinal,
-    beaufort_from_speed,
-    hourly_precip,
-    get_moon_phase_icon_filename,
-    get_moon_phase_label,
-    load_icon_mapping,
-    get_battery_status,  # Add this line
+    WeatherIcons,
+    UnitConverter,
+    PrecipitationUtils,
+    BatteryUtils,
     PiJuiceLike,  # Add this import
 )
 
@@ -36,13 +32,9 @@ __all__ = [
     "NetworkError",
     "ParseError",
     # Helpers
-    "get_weather_icon_filename",
-    "deg_to_cardinal",
-    "beaufort_from_speed",
-    "hourly_precip",
-    "get_moon_phase_icon_filename",
-    "get_moon_phase_label",
-    "load_icon_mapping",
-    "get_battery_status",  # Add this
+    "WeatherIcons",
+    "UnitConverter",
+    "PrecipitationUtils",
+    "BatteryUtils",
     "PiJuiceLike",  # Add this to the __all__ list
 ]
