@@ -204,19 +204,3 @@ class WeatherConfig(BaseModel):
             return cls.model_validate(data)
         except ValidationError as err:
             raise RuntimeError(f"Invalid configuration:\n{err}") from err
-
-
-# Legacy function for backward compatibility
-def load_config(path: Path) -> WeatherConfig:
-    """Parse and validate a YAML config file.
-
-    Args:
-        path: Path to config file
-
-    Returns:
-        Validated WeatherConfig object
-
-    Raises:
-        RuntimeError: If the config file cannot be parsed or is invalid
-    """
-    return WeatherConfig.load(path)

@@ -12,9 +12,8 @@ import logging
 import subprocess
 import sys
 import tempfile
-import time
 import webbrowser
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo
@@ -25,7 +24,7 @@ import yaml
 from pydantic import ValidationError
 
 # ── rpiweather packages ──────────────────────────────────────────────────────
-from rpiweather.config import WeatherConfig, load_config
+from rpiweather.config import WeatherConfig
 from rpiweather.display.epaper import IT8951Display
 from rpiweather.display.protocols import DisplayDriver
 from rpiweather.display.error_ui import ErrorRenderer
@@ -33,7 +32,6 @@ from rpiweather.constants import (
     PREVIEW_DIR,
     PREVIEW_HTML_NAME,
     PREVIEW_PNG_NAME,
-    FULL_REFRESH_INTERVAL,
     RefreshMode,
 )
 from rpiweather.display.render import (
@@ -41,14 +39,6 @@ from rpiweather.display.render import (
     TemplateRenderer,
     WkhtmlToPngRenderer,
 )
-from rpiweather.helpers import (
-    get_refresh_delay_minutes,
-    in_quiet_hours,
-    seconds_until_quiet_end,
-    should_power_off,
-)
-from rpiweather.power import graceful_shutdown, schedule_wakeup
-from rpiweather.remote import should_stay_awake
 from rpiweather.system.status import SystemStatus
 from rpiweather.types.pijuice import PiJuiceLike
 from rpiweather.weather import (
@@ -95,7 +85,7 @@ class WeatherDisplay:
         )
 
         # Load configuration and initialize services
-        self.config: WeatherConfig = load_config(config_path)
+        self.config: WeatherConfig = WeatherConfig.load(config_path)
         self.weather_api = WeatherAPI(self.config)
         self.pijuice = self._initialize_pijuice()
         self.error_streak = 0
@@ -322,130 +312,6 @@ class WeatherDisplay:
                 display_immediately=True,
             )
 
-    def run(
-        self,
-        preview: bool = False,
-        serve: bool = False,
-        once: bool = False,
-        stay_awake_url: Optional[str] = None,
-    ) -> None:
-        """Run the weather display application.
-
-        Args:
-            preview: Generate preview HTML only
-            serve: Start a local HTTP server to view preview
-            once: Run one cycle then exit
-            stay_awake_url: Override URL for remote stay-awake feature
-        """
-        if serve and not preview:
-            typer.secho(
-                "--serve can only be used together with --preview",
-                fg=typer.colors.RED,
-                err=True,
-            )
-            raise typer.Exit(code=1)
-
-        # Set up stay-awake URL with precedence: CLI > config > default
-        effective_url = (
-            stay_awake_url or self.config.stay_awake_url or DEFAULT_STAY_AWAKE_URL
-        )
-
-        base_minutes = self.config.refresh_minutes
-
-        # Main application loop
-        while True:
-            now = datetime.now()
-
-            # Check if we should stay awake (overrides quiet hours)
-            if should_stay_awake(effective_url):
-                logger.debug("Stay-awake flag true - overriding quiet hours")
-                in_quiet = False
-            else:
-                in_quiet = in_quiet_hours(now, self.config.quiet_hours)
-
-            # Handle quiet hours
-            if in_quiet:
-                self._sleep_until_quiet_hours_end(now)
-                continue
-
-            # Determine if full refresh is needed
-            full_refresh_needed = (
-                datetime.now() - self.last_full_refresh > FULL_REFRESH_INTERVAL
-            )
-
-            # Fetch weather and render dashboard
-            ok = self.fetch_and_render(
-                preview,
-                RefreshMode.FULL if full_refresh_needed else RefreshMode.GREYSCALE,
-                serve,
-                once,
-            )
-
-            # Handle success or error
-            if ok:
-                self.error_streak = 0
-                if full_refresh_needed:
-                    self.last_full_refresh = datetime.now()
-            else:
-                self.error_streak += 1
-                if self.error_streak >= 3:
-                    logger.warning("3 consecutive failures → backing off x4 interval")
-                    time.sleep(base_minutes * 4 * 60)
-                    continue
-
-            # Exit if only running once
-            if once:
-                break
-
-            # Determine sleep time based on battery status
-            soc, _, _ = self.get_battery_status()
-            sleep_min = get_refresh_delay_minutes(base_minutes, soc)
-
-            # Handle power management
-            if should_power_off(self.config, soc, now):
-                self._schedule_power_off(sleep_min, soc)
-                break
-
-            # Normal sleep
-            logger.info(
-                "Battery %02d%% → sleeping %d min (%.1fx normal)",
-                soc,
-                sleep_min,
-                sleep_min / base_minutes,
-            )
-            time.sleep(sleep_min * 60)
-
-    def _sleep_until_quiet_hours_end(self, now: datetime) -> None:
-        """Sleep until quiet hours end.
-
-        Args:
-            now: Current datetime
-        """
-        secs = seconds_until_quiet_end(now, self.config.quiet_hours)
-        logger.info(
-            "Quiet hours active → sleeping %d min until %s",
-            secs // 60,
-            (now + timedelta(seconds=secs)).strftime("%H:%M"),
-        )
-        time.sleep(secs)
-
-    def _schedule_power_off(self, sleep_min: int, soc: int) -> None:
-        """Schedule power off and wake up.
-
-        Args:
-            sleep_min: Minutes to sleep
-            soc: Battery state of charge
-        """
-        wake_dt = datetime.now() + timedelta(minutes=sleep_min)
-        schedule_wakeup(wake_dt)
-        logger.info(
-            "Powering off for %d min (SOC %d%%) → wake at %s",
-            sleep_min,
-            soc,
-            wake_dt.strftime("%H:%M"),
-        )
-        graceful_shutdown()
-
 
 # ───────────────────────── main command ─────────────────────────────────────
 @app.command()
@@ -478,7 +344,7 @@ def run(
 def validate_config(file: Path):
     """Validate a YAML config file against the schema."""
     try:
-        load_config(file)
+        WeatherConfig.load(file)
         typer.echo("✅ Config valid")
     except RuntimeError as exc:
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
