@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from rpiweather.config import QuietHours
-from rpiweather.helpers import in_quiet_hours, seconds_until_quiet_end
+from rpiweather.power import in_quiet_hours, seconds_until_quiet_end
 
 
 # ---------------------------------------------------------------------------
