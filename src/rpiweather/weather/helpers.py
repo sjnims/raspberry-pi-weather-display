@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 import csv
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from functools import wraps
 from typing import Any, Mapping, Protocol, runtime_checkable, Dict, Optional
+from typing import Callable, ParamSpec, TypeVar
 
-from rpiweather.types.pijuice import PiJuiceLike  # Update import
+from rpiweather.types.pijuice import PiJuiceLike
+
+# Type variables for decorator typing
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 # ------------------------- Type Definitions -------------------------
@@ -253,6 +261,60 @@ class PrecipitationUtils:
         if imperial:
             amount = UnitConverter.mm_to_inches(amount)
         return f"{amount:.2f}"
+
+
+# ------------------------- Miscellaneous Utilities -------------------------
+
+
+def ts_to_local_datetime(ts: int, tz: str) -> datetime:
+    """Convert a UNIX timestamp to a timezone-aware datetime."""
+    return datetime.fromtimestamp(ts, tz=ZoneInfo(tz))
+
+
+def wind_rotation(deg: float, direction: str = "towards") -> float:
+    """
+    Compute rotation angle for wind-direction icon.
+
+    Args:
+        deg: Wind bearing in degrees.
+        direction: "towards" to rotate arrow pointing from origin to degrees+180;
+                   "from" to use the bearing directly.
+    Returns:
+        Rotation angle in degrees for display.
+    """
+    deg_norm = deg % 360
+    return (deg_norm + 180) % 360 if direction == "towards" else deg_norm
+
+
+def format_local_time(dt: datetime, tz: str, fmt: str) -> str:
+    """Format a datetime for a given timezone and format string."""
+    return dt.astimezone(ZoneInfo(tz)).strftime(fmt)
+
+
+def icon_url(name: str) -> str:
+    """Return the sprite URL fragment for a weather icon by name."""
+    return f"static/icons/sprite.svg#wi-{name}"
+
+
+def with_fallback(fallback: R) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """
+    Decorator to return a fallback value if the wrapped function raises.
+
+    Args:
+        fallback: Value to return on exception.
+    """
+
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            try:
+                return func(*args, **kwargs)
+            except Exception:
+                return fallback
+
+        return wrapper
+
+    return decorator
 
 
 # ------------------------- Battery Utilities -------------------------
