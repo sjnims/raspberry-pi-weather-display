@@ -28,7 +28,7 @@ from pydantic import ValidationError
 from rpiweather.config import WeatherConfig, load_config
 from rpiweather.display.epaper import IT8951Display
 from rpiweather.display.protocols import DisplayDriver
-from rpiweather.display.error_ui import render_error_screen
+from rpiweather.display.error_ui import ErrorRenderer
 from rpiweather.constants import (
     PREVIEW_DIR,
     PREVIEW_HTML_NAME,
@@ -310,15 +310,17 @@ class WeatherDisplay:
         with tempfile.TemporaryDirectory() as td:
             error_png = Path(td) / "error.png"
 
-            # Use the PNG renderer directly instead of passing a function
-            render_error_screen(
-                f"API Error ({error.code}): {error.message}",
-                soc,
-                is_charging,
-                html_to_png_func=self.png_renderer.render_to_image,
-                out_path=error_png,
+            # Render and display the error screen using ErrorRenderer
+            renderer = ErrorRenderer(
+                html_renderer=self.png_renderer,
+                display_driver=self.display_driver,
             )
-            self.display_driver.display_image(error_png)
+            renderer.render_error(
+                error_message=f"API Error ({error.code}): {error.message}",
+                system_status=SystemStatus(soc, is_charging),
+                output_path=error_png,
+                display_immediately=True,
+            )
 
     def run(
         self,

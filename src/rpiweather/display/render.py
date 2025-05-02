@@ -230,10 +230,6 @@ class DashboardContextBuilder:
         return ctx
 
 
-# Then use them
-_renderer: TemplateRenderer = TemplateRenderer()
-
-
 class WkhtmlToPngRenderer(HtmlRenderer):
     """HTML to PNG renderer using wkhtmltoimage."""
 

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional, Protocol
+from typing import Optional, Protocol
 
 from jinja2 import Template
 
@@ -136,7 +136,7 @@ class ErrorRenderer:
 
         typed_context: Dict[str, Any] = context
 
-        # Render template to HTML (Option 1)
+        # Render template to HTML
         html_content = template.render(**typed_context)  # type: ignore
 
         # Convert to image
@@ -145,31 +145,3 @@ class ErrorRenderer:
         # Display if requested
         if display_immediately:
             self.display_driver.display_image(output_path, mode=RefreshMode.GREYSCALE)
-
-
-# Compatibility function for backward compatibility
-def render_error_screen(
-    error_msg: str,
-    soc: int,
-    is_charging: bool,
-    html_to_png_func: Callable[[str, Path], None],
-    out_path: Path,
-) -> None:
-    """Legacy function to maintain backward compatibility."""
-
-    # Create adapter for the html_to_png_func to match the HtmlRenderer protocol
-    class HtmlToPngAdapter:
-        def render_to_image(self, html: str, output_path: Path) -> None:
-            html_to_png_func(html, output_path)
-
-    # Create system status object
-    status = SystemStatus(soc=soc, is_charging=is_charging)
-
-    # Use the new renderer
-    renderer = ErrorRenderer(html_renderer=HtmlToPngAdapter())
-    renderer.render_error(
-        error_message=error_msg,
-        system_status=status,
-        output_path=out_path,
-        display_immediately=True,
-    )
