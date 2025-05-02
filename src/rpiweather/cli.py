@@ -166,7 +166,7 @@ class WeatherDisplay:
     def fetch_and_render(
         self,
         preview: bool = False,
-        full_refresh: bool = False,
+        mode: RefreshMode = RefreshMode.GREYSCALE,
         serve: bool = False,
         once: bool = False,
     ) -> bool:
@@ -174,7 +174,7 @@ class WeatherDisplay:
 
         Args:
             preview: Generate preview HTML only (no PNG or display)
-            full_refresh: Force full refresh of e-ink display
+            mode: RefreshMode to use for display update
             serve: Start a local HTTP server to view preview
             once: Run one cycle then exit
 
@@ -189,7 +189,7 @@ class WeatherDisplay:
             return self._render_dashboard(
                 weather,
                 preview,
-                full_refresh,
+                mode,
                 soc,
                 is_charging,
                 battery_warning,
@@ -228,7 +228,7 @@ class WeatherDisplay:
         self,
         weather: WeatherResponse,
         preview: bool,
-        full_refresh: bool,
+        mode: RefreshMode,
         soc: int,
         is_charging: bool,
         battery_warning: bool,
@@ -240,7 +240,8 @@ class WeatherDisplay:
         Args:
             weather: Weather data to display
             preview: Generate preview HTML only
-            full_refresh: Force full display refresh
+            mode: RefreshMode
+                Which refresh mode to use (FULL or GREYSCALE).
             soc: Battery state of charge
             is_charging: Whether battery is charging
             battery_warning: Whether to show battery warning
@@ -278,7 +279,6 @@ class WeatherDisplay:
 
         # Update e-ink display
         if not preview:
-            mode = RefreshMode.FULL if full_refresh else RefreshMode.GREYSCALE
             self.display_driver.display_image(png_path, mode=mode)
 
         return True
@@ -367,17 +367,22 @@ class WeatherDisplay:
                 continue
 
             # Determine if full refresh is needed
-            full_refresh = (
+            full_refresh_needed = (
                 datetime.now() - self.last_full_refresh > FULL_REFRESH_INTERVAL
             )
 
             # Fetch weather and render dashboard
-            ok = self.fetch_and_render(preview, full_refresh, serve, once)
+            ok = self.fetch_and_render(
+                preview,
+                RefreshMode.FULL if full_refresh_needed else RefreshMode.GREYSCALE,
+                serve,
+                once,
+            )
 
             # Handle success or error
             if ok:
                 self.error_streak = 0
-                if full_refresh:
+                if full_refresh_needed:
                     self.last_full_refresh = datetime.now()
             else:
                 self.error_streak += 1

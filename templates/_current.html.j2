@@ -65,20 +65,20 @@
     <svg class="weather-display__detail-icon">
       <use href="{{ url_for('static', filename='icons/sprite.svg') }}#wi-barometer"></use>
     </svg>
-    <span>TO DO: 28 inHg</span>
+    <span>{{ pressure }} {{ units_pressure }}</span>
   </div>
   <div class="weather-display__detail">
     <svg class="weather-display__detail-icon"
          style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);">
       <use href="{{ url_for('static', filename='icons/sprite.svg') }}#wi-wind-deg"></use>
     </svg>
-    <span>TO DO: NNE</span>
+    <span>{{ current.wind_deg | deg_to_cardinal }}</span>
   </div>
   <div class="weather-display__detail">
     <svg class="weather-display__detail-icon">
       <use href="{{ url_for('static', filename='icons/sprite.svg') }}#{{ moon_phase | moon_phase_icon | replace('.svg','') }}"></use>
     </svg>
-    <span>TO DO: New</span>
+    <span>{{ moon_phase | moon_phase_label }}</span>
   </div>
 </section>
 

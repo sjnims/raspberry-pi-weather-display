@@ -22,6 +22,7 @@ from rpiweather.weather.helpers import (
     get_moon_phase_label,
     get_weather_icon_filename,
     hourly_precip,
+    hpa_to_inhg,
 )
 
 
@@ -189,6 +190,12 @@ class DashboardContextBuilder:
         for d in daily:
             d.weekday_short = d.dt.astimezone().strftime("%a")
 
+        # Pressure conversion: OpenWeather returns pressure in hPa
+        pressure_hpa = weather.current.pressure
+        pressure_value = (
+            pressure_hpa if self.config.units == "metric" else hpa_to_inhg(pressure_hpa)
+        )
+
         # Build the complete context
         ctx = {
             "now": now,
@@ -201,6 +208,7 @@ class DashboardContextBuilder:
             "units_temp": "°C" if self.config.units == "metric" else "°F",
             "units_wind": "m/s" if self.config.units == "metric" else "mph",
             "units_pressure": "hPa" if self.config.units == "metric" else "inHg",
+            "pressure": pressure_value,
             "hourly": hourly,
             "daily": daily,
             "sunrise": sunrise_str,

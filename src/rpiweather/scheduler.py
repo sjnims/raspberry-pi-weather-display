@@ -3,7 +3,11 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, TYPE_CHECKING
 
-from rpiweather.constants import DEFAULT_STAY_AWAKE_URL, FULL_REFRESH_INTERVAL
+from rpiweather.constants import (
+    DEFAULT_STAY_AWAKE_URL,
+    FULL_REFRESH_INTERVAL,
+    RefreshMode,
+)
 from rpiweather.helpers import QuietHoursHelper, PowerManager
 from rpiweather.remote import should_stay_awake
 from rpiweather.power import schedule_wakeup, graceful_shutdown
@@ -57,15 +61,21 @@ class Scheduler:
                 time.sleep(secs)
                 continue
 
-            full_refresh = (
+            # Determine if full refresh is needed
+            full_refresh_needed = (
                 datetime.now() - self.display.last_full_refresh > FULL_REFRESH_INTERVAL
             )
 
-            ok = self.display.fetch_and_render(preview, full_refresh, serve, once)
+            ok = self.display.fetch_and_render(
+                preview,
+                RefreshMode.FULL if full_refresh_needed else RefreshMode.GREYSCALE,
+                serve,
+                once,
+            )
 
             if ok:
                 self.display.error_streak = 0
-                if full_refresh:
+                if full_refresh_needed:
                     self.display.last_full_refresh = datetime.now()
             else:
                 self.display.error_streak += 1
