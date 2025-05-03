@@ -2,18 +2,29 @@
 lat: 33.8852
 lon: -84.5144
 city: Smyrna, GA
-api_key: "YOUR_OPENWEATHER_KEY"
+api_key: "YOUR_OPENWEATHER_API_KEY"
 
 # Units & formatting
 units: imperial        # imperial or metric
+
+
+# Time formats
 timezone: "America/New_York"  # e.g. America/New_York
 time_format_general: "%-I:%M %p"  # e.g. 6:04 AM
 time_format_hourly: "%-I %p"      # e.g. 6 AM
+time_format_daily: "%a"           # e.g. Mon
+time_format_full_date: "%A, %B %-d"  # e.g. Monday, January 3
 
 # How much forecast data to show
 hourly_count: 8        # number of hourly entries in the strip (1–48)
 daily_count: 5         # number of daily entries (1–7)
 
 # Base refresh cadence (minutes)
-# The program automatically doubles this when battery SoC < 25 %.
+# The program adjusts this value based on multiple battery SoC thresholds
+# and other system conditions to optimize power consumption.
 refresh_minutes: 120
+
+# Display settings (pixels)
+# The display width and height should match the actual resolution of your display.
+display_width: 1872
+display_height: 1404

@@ -69,6 +69,10 @@ class UserSettings(BaseModel):
     daily_count: int = Field(
         5, ge=1, le=7, description="Days to show in forecast slice"
     )
+    display_width: int = Field(1872, gt=0, description="Width of the display in pixels")
+    display_height: int = Field(
+        1404, gt=0, description="Height of the display in pixels"
+    )
 
     # Power management
     poweroff_soc: int = Field(
@@ -85,6 +89,10 @@ class UserSettings(BaseModel):
     )
     time_format_hourly: str = Field(
         "%-I %p", description="Hourly forecast time display format (e.g. 6 AM)"
+    )
+    time_format_daily: str = Field("%a", description="Daily forecast format (e.g. Mon)")
+    time_format_full_date: str = Field(
+        "%A, %B %-d", description="Full date format (e.g. Monday, January 3)"
     )
     timezone: str = Field(
         "America/New_York", description="Local timezone for display formatting"
@@ -158,6 +166,16 @@ class UserSettings(BaseModel):
 
         fmt = self.time_format_hourly if hourly else self.time_format_general
         return dt.strftime(fmt)
+
+    @property
+    def is_metric(self) -> bool:
+        """Whether the user has selected metric units."""
+        return self.units == "metric"
+
+    @property
+    def is_imperial(self) -> bool:
+        """Whether the user has selected imperial units."""
+        return self.units == "imperial"
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> UserSettings:

@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import platform
 import subprocess
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, cast
-from zoneinfo import ZoneInfo
 
-from jinja2 import Environment, FileSystemLoader, Template, Undefined, select_autoescape
+from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
-from rpiweather.settings import UserSettings
+from rpiweather.settings import UserSettings, ApplicationSettings
 from rpiweather.display.protocols import HtmlRenderer
 from rpiweather.system.status import SystemStatus
 from rpiweather.weather.api import WeatherResponse
@@ -29,26 +27,31 @@ class TemplateRenderer:
 
     dashboard_template: Template
 
-    def __init__(self, templates_dir: Optional[Path] = None) -> None:
+    def __init__(
+        self,
+        templates_dir: Optional[Path] = None,
+        user_settings: Optional[UserSettings] = None,
+    ) -> None:
         """Initialize the template renderer.
 
         Args:
-            templates_dir: Directory containing templates (default: project's templates/)
+            templates_dir: Directory containing templates (default: from settings)
+            user_settings: User configuration
         """
-        project_root = Path(__file__).resolve().parents[3]  # repo root
-        self.templates_dir = templates_dir or project_root / "templates"
-        self.static_dir = project_root / "static"
+        self.user_settings = user_settings or UserSettings.load()
+        self.app_settings = ApplicationSettings(self.user_settings)
+
+        if templates_dir:
+            self.templates_dir = templates_dir
+        else:
+            self.templates_dir = self.app_settings.paths.templates_dir
+            self.static_dir = self.app_settings.paths.static_dir
 
         # Create Jinja environment with custom filters
         self.env = Environment(
             loader=FileSystemLoader(self.templates_dir),
             autoescape=select_autoescape(["html"]),
         )
-
-        # Register template globals (static asset helpers)
-        def _static_url(path: str) -> str:
-            """Return a web-relative URL for static assets."""
-            return f"static/{path}"
 
         def _url_for(endpoint: str, filename: str = "") -> str:
             """Simple url_for implementation for static assets."""
@@ -59,7 +62,6 @@ class TemplateRenderer:
         # Expose under common names in templates
         self.env.globals.update(
             {
-                "static_url": _static_url,
                 "url_for": _url_for,
             }
         )
@@ -88,18 +90,6 @@ class TemplateRenderer:
         """Return adjusted wind bearing for 'from' or 'towards' arrow."""
         return deg if direction == "towards" else (deg + 180) % 360
 
-    @staticmethod
-    def _ts_to_local(ts: int, timezone: str = "UTC") -> datetime:
-        """Convert POSIX timestamp to local datetime."""
-        return datetime.fromtimestamp(ts, tz=ZoneInfo(timezone))
-
-    @staticmethod
-    def _dt_format(d: datetime, fmt: str = "%-I %p") -> str:
-        """strftime wrapper usable as a Jinja filter."""
-        if isinstance(fmt, Undefined):
-            fmt = "%-I %p"
-        return d.strftime(fmt)
-
     def render_dashboard(self, **context: Any) -> str:
         """Render the dashboard template with the provided context.
 
@@ -111,28 +101,18 @@ class TemplateRenderer:
         """
         return cast(str, self.dashboard_template.render(**context))  # type: ignore
 
-    def get_template(self, template_name: str) -> Template:
-        """Get a template by name.
-
-        Args:
-            template_name: Template filename
-
-        Returns:
-            Jinja2 Template object
-        """
-        return self.env.get_template(template_name)
-
 
 class DashboardContextBuilder:
     """Builds context data for dashboard templates."""
 
-    def __init__(self, config: UserSettings) -> None:
+    def __init__(self, user_settings: Optional[UserSettings] = None) -> None:
         """Initialize with configuration.
 
         Args:
-            config: Weather display configuration
+            user_settings: User configuration
         """
-        self.config = config
+        self.user_settings = user_settings or UserSettings.load()
+        self.app_settings = ApplicationSettings(self.user_settings)
 
     def build_dashboard_context(
         self,
@@ -164,51 +144,56 @@ class DashboardContextBuilder:
         if uvi_slice:
             max_uvi_entry = max(uvi_slice, key=lambda x: x[1])
             max_uvi_time = max_uvi_entry[0].astimezone()
-            max_uvi_time_str = max_uvi_time.strftime(self.config.time_format_general)
+            max_uvi_time_str = TimeUtils.format_datetime(
+                max_uvi_time, self.app_settings.formats.general
+            )
 
         # Sun and moon information
         sunrise_dt = weather.current.sunrise
         sunset_dt = weather.current.sunset
         sunrise_str = TimeUtils.format_datetime(
-            sunrise_dt, self.config.time_format_general
+            sunrise_dt, self.app_settings.formats.general
         )
-        sunset_str = sunset_dt.strftime(self.config.time_format_general)
+        sunset_str = TimeUtils.format_datetime(
+            sunset_dt, self.app_settings.formats.general
+        )
         moon_phase = weather.daily[0].moon_phase if weather.daily else 0.0
 
         # Process hourly forecast
         hourly = [h for h in weather.hourly if h.dt.astimezone() > now][
-            : self.config.hourly_count
+            : self.user_settings.hourly_count
         ]
         for h in hourly:
-            h.local_time = h.dt.astimezone().strftime(self.config.time_format_hourly)
+            h.local_time = h.dt.astimezone().strftime(self.app_settings.formats.hourly)
 
         # Process daily forecast
         daily = [d for d in weather.daily if d.dt.astimezone().date() > today_local][
-            : self.config.daily_count
+            : self.user_settings.daily_count
         ]
         for d in daily:
-            d.weekday_short = d.dt.astimezone().strftime("%a")
+            d.weekday_short = d.dt.astimezone().strftime(
+                self.app_settings.formats.daily
+            )
 
         # Pressure conversion: OpenWeather returns pressure in hPa
         pressure_hpa = weather.current.pressure
         pressure_value = (
             pressure_hpa
-            if self.config.units == "metric"
+            if self.user_settings.is_metric
             else UnitConverter.hpa_to_inhg(pressure_hpa)
         )
 
         # Build the complete context
         ctx = {
             "now": now,
-            "date": now.strftime("%A, %B %-d"),
-            "last_refresh": now.strftime(self.config.time_format_general + " %Z"),
-            "soc": system_status.soc,
+            "date": TimeUtils.format_datetime(now, self.app_settings.formats.full_date),
+            "last_refresh": now.strftime(self.app_settings.formats.general + " %Z"),
             "battery_soc": system_status.soc,
             "battery_warning": system_status.battery_warning,
             "is_charging": system_status.is_charging,
-            "units_temp": "°C" if self.config.units == "metric" else "°F",
-            "units_wind": "m/s" if self.config.units == "metric" else "mph",
-            "units_pressure": "hPa" if self.config.units == "metric" else "inHg",
+            "units_temp": "°C" if self.user_settings.is_metric else "°F",
+            "units_wind": "m/s" if self.user_settings.is_metric else "mph",
+            "units_pressure": "hPa" if self.user_settings.is_metric else "inHg",
             "pressure": pressure_value,
             "hourly": hourly,
             "daily": daily,
@@ -220,7 +205,7 @@ class DashboardContextBuilder:
             "uvi_time": max_uvi_time_str,
             "current": weather.current,
             "hourly_precip": PrecipitationUtils.hourly_precip,
-            "city": self.config.city,
+            "city": self.user_settings.city,
             "daylight": TimeUtils.get_time_difference_string(sunrise_dt, sunset_dt),
             "uvi_max": max((uvi[1] for uvi in uvi_slice), default=0),
             "uvi_occurred": max_uvi_time is not None and now > max_uvi_time,
@@ -234,15 +219,16 @@ class DashboardContextBuilder:
 class WkhtmlToPngRenderer(HtmlRenderer):
     """HTML to PNG renderer using wkhtmltoimage."""
 
-    def __init__(self, width: int = 1872, height: int = 1404) -> None:
-        """Initialize the renderer.
-
-        Args:
-            width: Output image width
-            height: Output image height
-        """
-        self.width = width
-        self.height = height
+    def __init__(
+        self,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        user_settings: Optional[UserSettings] = None,
+    ) -> None:
+        """Initialize with optional custom dimensions."""
+        self.user_settings = user_settings or UserSettings.load()
+        self.width = width or self.user_settings.display_width
+        self.height = height or self.user_settings.display_height
 
     def render_to_image(self, html: str, output_path: Path) -> None:
         """Render HTML to PNG.

@@ -42,14 +42,32 @@ class AppPaths:
         )
 
 
-@dataclass
-class DateTimeFormats:
-    """Date and time format strings."""
+class FormatAdapter:
+    """Adapter for date and time formats from user settings."""
 
-    general: str = "%-I:%M %p"
-    hourly: str = "%-I %p"
-    daily: str = "%a"
-    full_date: str = "%A, %B %-d"
+    def __init__(self, user_settings: UserSettings):
+        """Initialize with user settings."""
+        self._user = user_settings
+
+    @property
+    def general(self) -> str:
+        """General time format."""
+        return self._user.time_format_general
+
+    @property
+    def hourly(self) -> str:
+        """Hourly forecast time format."""
+        return self._user.time_format_hourly
+
+    @property
+    def daily(self) -> str:
+        """Daily forecast date format."""
+        return self._user.time_format_daily
+
+    @property
+    def full_date(self) -> str:
+        """Full date format."""
+        return self._user.time_format_full_date
 
 
 @dataclass
@@ -77,20 +95,15 @@ class ApplicationSettings:
         self,
         user_settings: UserSettings,
         paths: Optional[AppPaths] = None,
-        formats: Optional[DateTimeFormats] = None,
+        formats: Optional[FormatAdapter] = None,
         refresh: Optional[RefreshSettings] = None,
         stay_awake_url: Optional[StayAwakeURL] = None,
+        refresh_mode: Optional[RefreshMode] = None,
     ):
         """Initialize application settings with configuration sources."""
         self.user = user_settings  # Store user settings directly
         self.paths = paths or AppPaths.from_base_dir(Path(__file__).parents[3])
-        self.formats = formats or DateTimeFormats()
+        self.formats = formats or FormatAdapter(user_settings)
         self.refresh = refresh or RefreshSettings()
         self.stay_awake_url = stay_awake_url or StayAwakeURL()
-
-        # Import format strings from config if available
-        if hasattr(user_settings, "time_format_general"):
-            self.formats.general = user_settings.time_format_general
-
-        if hasattr(user_settings, "time_format_hourly"):
-            self.formats.hourly = user_settings.time_format_hourly
+        self.refresh_mode = refresh_mode or RefreshMode.GREYSCALE

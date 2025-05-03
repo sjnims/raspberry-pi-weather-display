@@ -9,7 +9,7 @@ from .user import UserSettings, QuietHours
 from .application import (
     ApplicationSettings,
     AppPaths,
-    DateTimeFormats,
+    FormatAdapter,
     RefreshSettings,
     RefreshMode,
     StayAwakeURL,
@@ -20,7 +20,7 @@ __all__ = [
     "QuietHours",
     "ApplicationSettings",
     "AppPaths",
-    "DateTimeFormats",
+    "FormatAdapter",
     "RefreshSettings",
     "RefreshMode",
     "StayAwakeURL",

@@ -52,9 +52,6 @@ app.add_typer(config_app, name="config")
 
 logger: logging.Logger = logging.getLogger("rpiweather")
 
-DEFAULT_STAY_AWAKE_URL = "http://localhost:8000/stay_awake.json"
-MIN_SHUTDOWN_SLEEP_MIN = 20  # don't power‑off for very short sleeps
-
 
 class WeatherDisplay:
     """Main controller class for the weather display application."""
@@ -341,7 +338,9 @@ def run(
 ) -> None:
     """Run the weather display application."""
     display = WeatherDisplay(config, display_driver=IT8951Display(), debug=debug)
-    scheduler = Scheduler(display, stay_awake_url)
+    scheduler = Scheduler(
+        display, stay_awake_url or display.settings.stay_awake_url.url
+    )
     scheduler.run(preview, serve, once)
 
 
