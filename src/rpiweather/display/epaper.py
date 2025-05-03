@@ -1,15 +1,10 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Final, Optional, Any
+from typing import Optional, Any
 import logging
 
 from rpiweather.display.protocols import DisplayDriver
-from rpiweather.settings import RefreshMode
-
-# Constants
-WIDTH: Final = 1872
-HEIGHT: Final = 1404
-VCOM_VOLTS: Final = -1.45  # factory sticker on the panel
+from rpiweather.settings import RefreshMode, UserSettings
 
 
 class IT8951Display(DisplayDriver):
@@ -28,6 +23,8 @@ class IT8951Display(DisplayDriver):
         self.logger = logging.getLogger("weather_display")
         self.simulate = simulate
         self._epd: Optional[Any] = None
+        self.settings = UserSettings.load()
+        self.vcom = self.settings.vcom_volts
 
         if not simulate:
             try:
@@ -44,19 +41,20 @@ class IT8951Display(DisplayDriver):
 
     def _apply_vcom(self) -> None:
         """Set VCOM to factory-specified value, handling driver differences."""
+
         assert self._epd is not None
         try:
             # Newer drivers take millivolts
-            self._epd.set_vcom(int(VCOM_VOLTS * 1000))
+            self._epd.set_vcom(int(self.vcom * 1000))
         except (AttributeError, TypeError):
             # Older drivers take volts
-            self._epd.set_vcom(VCOM_VOLTS)
+            self._epd.set_vcom(self.vcom)
         # Log the read-back VCOM for verification
         try:
             vcom_reported = self._epd.get_vcom() / 1000
             self.logger.debug(
                 "VCOM set to %.2f V (panel reports %.2f V)",
-                VCOM_VOLTS,
+                self.vcom,
                 vcom_reported,
             )
         except Exception:
@@ -77,7 +75,7 @@ class IT8951Display(DisplayDriver):
         if self.simulate:
             self.logger.info(
                 f"[SIM] Would display {image_path} "
-                f"(mode {mode_value}, VCOM {VCOM_VOLTS} V)"
+                f"(mode {mode_value}, VCOM {self.vcom} V)"
             )
             return
 

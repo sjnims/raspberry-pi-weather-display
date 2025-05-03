@@ -78,6 +78,12 @@ class UserSettings(BaseModel):
     display_height: int = Field(
         1404, gt=0, description="Height of the display in pixels"
     )
+    vcom_volts: float = Field(
+        -1.45,
+        ge=-2.0,
+        le=0.0,
+        description='VCOM voltage for the display (-1.45 for 10.3" HAT)',
+    )
 
     # Power management
     poweroff_soc: int = Field(

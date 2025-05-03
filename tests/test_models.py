@@ -50,6 +50,7 @@ def dummy_config(weather_response: WeatherResponse) -> UserSettings:
         display_height=480,
         poweroff_soc=20,
         stay_awake_url="",
+        vcom_volts=-1.45,
     )
 
 

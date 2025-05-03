@@ -123,6 +123,12 @@ daily_count: 5         # number of daily entries (1–7)
 # The program adjusts this value based on multiple battery SoC
 # thresholds and other system conditions to optimize power consumption.
 refresh_minutes: 120
+
+# Display settings (pixels)
+# The display width and height should match the actual resolution of your display.
+display_width: 1872
+display_height: 1404
+vcom_volts: -1.45 # VCOM voltage for the display, printed on the display ribbon
 ```
 
 * `lat` and `lon` are your location's latitude and longitude (see [OpenWeather](https://openweathermap.org/) for details).
@@ -139,6 +145,8 @@ refresh_minutes: 120
   * 16-25%: 2× slower
   * 6-15%: 3× slower
   * 0-5%: 4× slower
+* `display_width` and `display_height` are the actual resolution of your display (default **1872x1404**).
+* `vcom_volts` is the VCOM voltage for the display, printed on the display ribbon. This is used to set the VCOM voltage for the display.
 
 ---
 
