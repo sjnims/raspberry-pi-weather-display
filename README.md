@@ -175,7 +175,7 @@ When this variable is present, the system will skip auto power-off and remain aw
 
 GitHub Actions automatically run on every PR and push to main:
 
-* Code formatting checks (black, isort)
+* Code formatting checks (black formatter)
 * Type checking (mypy)
 * Unit tests (pytest)
 * Icon sprite generation
