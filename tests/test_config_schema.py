@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from rpiweather.config import WeatherConfig
+from rpiweather.settings import UserSettings
 
 
 GOOD_YAML = """
@@ -24,8 +24,8 @@ units: imperial
 def test_valid_config(tmp_path: Path):
     cfg_file = tmp_path / "good.yaml"
     cfg_file.write_text(GOOD_YAML)
-    cfg = WeatherConfig.load(cfg_file)
-    assert isinstance(cfg, WeatherConfig)
+    cfg = UserSettings.load(cfg_file)
+    assert isinstance(cfg, UserSettings)
     assert cfg.city == "Testville"
 
 
@@ -33,4 +33,4 @@ def test_invalid_config(tmp_path: Path):
     cfg_file = tmp_path / "bad.yaml"
     cfg_file.write_text(BAD_YAML)
     with pytest.raises(RuntimeError):
-        WeatherConfig.load(cfg_file)
+        UserSettings.load(cfg_file)

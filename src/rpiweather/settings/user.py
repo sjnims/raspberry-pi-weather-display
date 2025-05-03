@@ -1,3 +1,5 @@
+"""User-configurable settings loaded from config.yaml."""
+
 from __future__ import annotations
 
 import os
@@ -40,8 +42,8 @@ class QuietHours(BaseModel):
         return current_hour >= self.start or current_hour < self.end
 
 
-class WeatherConfig(BaseModel):
-    """Schema for config.yaml."""
+class UserSettings(BaseModel):
+    """Schema for user-configurable settings in config.yaml."""
 
     # Default search paths for configuration
     DEFAULT_CONFIG_PATHS: ClassVar[list[Path]] = [
@@ -158,14 +160,14 @@ class WeatherConfig(BaseModel):
         return dt.strftime(fmt)
 
     @classmethod
-    def load(cls, path: Optional[Path] = None) -> WeatherConfig:
+    def load(cls, path: Optional[Path] = None) -> UserSettings:
         """Load configuration from a YAML file.
 
         Args:
             path: Path to config file (optional, searches default locations if None)
 
         Returns:
-            Validated WeatherConfig object
+            Validated UserSettings object
 
         Raises:
             FileNotFoundError: If no config file is found

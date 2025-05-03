@@ -17,7 +17,7 @@ from .utils import (
     PrecipitationUtils,
 )
 
-from rpiweather.config import WeatherConfig
+from rpiweather.settings import UserSettings
 from rpiweather.weather.models import Daily
 from rpiweather.utils import TimeUtils
 
@@ -44,7 +44,7 @@ HTTP_ERROR_MAP: Final = {
 class WeatherAPI:
     """OpenWeather API client for fetching weather data."""
 
-    def __init__(self, config: WeatherConfig, timeout: int = 10) -> None:
+    def __init__(self, config: UserSettings, timeout: int = 10) -> None:
         """Initialize the weather API client.
 
         Args:
@@ -262,7 +262,7 @@ class WeatherAPI:
         return max_uvi_value, max_uvi_time
 
     def _process_wind_data(
-        self, weather: WeatherResponse, cfg: WeatherConfig
+        self, weather: WeatherResponse, cfg: UserSettings
     ) -> tuple[float, int]:
         """Process wind speed and direction data."""
         speed = weather.current.wind_speed or 0.0
@@ -276,7 +276,7 @@ class WeatherAPI:
         return speed, arrow_deg
 
     def _get_future_daily(
-        self, weather: WeatherResponse, now: datetime, cfg: WeatherConfig
+        self, weather: WeatherResponse, now: datetime, cfg: UserSettings
     ) -> list[Daily]:  # Add this return type
         """Get daily forecasts starting from tomorrow.
 
@@ -297,7 +297,7 @@ class WeatherAPI:
         ][: cfg.daily_count]
 
     def _precompute_display_strings(
-        self, weather: WeatherResponse, cfg: WeatherConfig
+        self, weather: WeatherResponse, cfg: UserSettings
     ) -> None:
         """Precompute display strings for hourly and daily forecasts."""
         # Precompute local_time strings for each hourly forecast object

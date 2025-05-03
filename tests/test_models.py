@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from rpiweather.weather.api import WeatherAPI
 from rpiweather.weather.models import WeatherResponse
-from rpiweather.config import WeatherConfig
+from rpiweather.settings import UserSettings
 
 # Path to fixture JSON
 FIXTURE = Path(__file__).parent / "data" / "onecall_sample.json"
@@ -23,9 +23,9 @@ def weather_response() -> WeatherResponse:
 
 
 @pytest.fixture
-def dummy_config(weather_response: WeatherResponse) -> WeatherConfig:
-    """Fixture for a dummy WeatherConfig instance."""
-    return WeatherConfig(
+def dummy_config(weather_response: WeatherResponse) -> UserSettings:
+    """Fixture for a dummy UserSettings instance."""
+    return UserSettings(
         lat=weather_response.lat,
         lon=weather_response.lon,
         api_key="DUMMYKEY1234567890",
@@ -74,7 +74,7 @@ def test_weather_response_validation_error(bad_weather_json: str) -> None:
 
 
 def test_build_context_basic(
-    weather_response: WeatherResponse, dummy_config: WeatherConfig
+    weather_response: WeatherResponse, dummy_config: UserSettings
 ) -> None:
     """build_context returns expected keys for template rendering."""
     wx = weather_response
@@ -97,7 +97,7 @@ def test_build_context_basic(
     ],
 )
 def test_build_context_contains_key(
-    weather_response: WeatherResponse, dummy_config: WeatherConfig, ctx_key: str
+    weather_response: WeatherResponse, dummy_config: UserSettings, ctx_key: str
 ) -> None:
     """Each expected key should be present in the build_context output."""
     ctx = WeatherAPI(dummy_config).build_context(weather_response)

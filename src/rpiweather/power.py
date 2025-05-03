@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from typing import Any, Final, Protocol, Optional, runtime_checkable, cast
 
-from rpiweather.config import QuietHours, WeatherConfig
+from rpiweather.settings import QuietHours, UserSettings
 
 logger: Final = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ class PowerManager:
 class BatteryManager:
     """Manages battery-specific logic for refresh timing and power decisions."""
 
-    def __init__(self, config: WeatherConfig) -> None:
+    def __init__(self, config: UserSettings) -> None:
         """Initialize the battery manager with configuration.
 
         Args:

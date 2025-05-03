@@ -23,7 +23,7 @@ import yaml
 from pydantic import ValidationError
 
 # ── rpiweather packages ──────────────────────────────────────────────────────
-from rpiweather.config import WeatherConfig
+from rpiweather.settings import UserSettings, ApplicationSettings
 from rpiweather.display.epaper import IT8951Display
 from rpiweather.display.protocols import DisplayDriver
 from rpiweather.display.error_ui import ErrorRenderer
@@ -85,7 +85,11 @@ class WeatherDisplay:
         )
 
         # Load configuration and initialize services
-        self.config: WeatherConfig = WeatherConfig.load(config_path)
+        self.config: UserSettings = UserSettings.load(config_path)
+
+        # Create centralized settings
+        self.settings = ApplicationSettings(self.config)
+
         self.weather_api = WeatherAPI(self.config)
         self.pijuice = self._initialize_pijuice()
         self.error_streak = 0
@@ -344,7 +348,7 @@ def run(
 def validate_config(file: Path):
     """Validate a YAML config file against the schema."""
     try:
-        WeatherConfig.load(file)
+        UserSettings.load(file)
         typer.echo("✅ Config valid")
     except RuntimeError as exc:
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
@@ -365,7 +369,7 @@ def wizard(dst: Path = typer.Argument(..., help="Output config.yaml")):
             "units": typer.prompt("Units [imperial|metric]", default="imperial"),
         }
         try:
-            cfg = WeatherConfig(**data)
+            cfg = UserSettings(**data)
             break  # valid → exit loop
         except ValidationError as err:
             typer.secho("\nConfig error(s):", fg=typer.colors.RED, err=True)

@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from rpiweather.config import QuietHours
+from rpiweather.settings import QuietHours
 from rpiweather.power import QuietHoursHelper, QuietHoursManager
 
 

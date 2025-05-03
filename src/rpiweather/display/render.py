@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, Template, Undefined, select_autoescape
 
-from rpiweather.config import WeatherConfig
+from rpiweather.settings import UserSettings
 from rpiweather.display.protocols import HtmlRenderer
 from rpiweather.system.status import SystemStatus
 from rpiweather.weather.api import WeatherResponse
@@ -126,7 +126,7 @@ class TemplateRenderer:
 class DashboardContextBuilder:
     """Builds context data for dashboard templates."""
 
-    def __init__(self, config: WeatherConfig) -> None:
+    def __init__(self, config: UserSettings) -> None:
         """Initialize with configuration.
 
         Args:
