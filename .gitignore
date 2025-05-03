@@ -38,3 +38,8 @@ node_modules/
 
 # Preview files
 preview/
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/

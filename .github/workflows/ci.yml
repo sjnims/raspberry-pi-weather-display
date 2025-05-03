@@ -54,3 +54,11 @@ jobs:
 
       - name: Run full test suite
         run: poetry run pytest -q
+
+      - name: Run tests
+        run: pytest --cov --cov-branch --cov-report=xml
+
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

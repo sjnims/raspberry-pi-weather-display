@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/sjnims/raspberry-pi-weather-display/actions/workflows/ci.yml/badge.svg)](https://github.com/sjnims/raspberry-pi-weather-display/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![codecov](https://codecov.io/gh/sjnims/raspberry-pi-weather-display/graph/badge.svg?token=11B4PA0S97)](https://codecov.io/gh/sjnims/raspberry-pi-weather-display)
 
 A self‑contained Python 3 application that transforms a **Raspberry Pi Zero 2 W** and a **Waveshare e‑paper HAT** into an ultra‑low‑power framed weather dashboard, capable of running for **50-60 days** on a single battery charge.
 
