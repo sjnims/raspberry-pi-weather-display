@@ -1,19 +1,23 @@
-# Location / API
-lat: 33.8852
-lon: -84.5144
-city: Smyrna, GA
-api_key: "YOUR_OPENWEATHER_API_KEY"
+# config-sample.yaml
+# Weather Display - Example Configuration
+# --------------------------------------
+# Copy this file to config.yaml and customize for your setup
 
-# Units & formatting
-units: imperial        # imperial or metric
+# Location & API credentials
+lat: 33.8852         # Your latitude
+lon: -84.5144        # Your longitude
+city: "Smyrna, GA"  # Display name for your location
+api_key: "your-openweather-api-key"  # Get from openweathermap.org
 
+# Display preferences
+units: imperial      # 'imperial' for °F/mph or 'metric' for °C/m/s
+timezone: "America/New_York"  # Your local timezone
 
-# Time formats
-timezone: "America/New_York"  # e.g. America/New_York
-time_format_general: "%-I:%M %p"  # e.g. 6:04 AM
-time_format_hourly: "%-I %p"      # e.g. 6 AM
-time_format_daily: "%a"           # e.g. Mon
-time_format_full_date: "%A, %B %-d"  # e.g. Monday, January 3
+# Time formats (strftime format strings)
+time_format_general: "%-I:%M %p"    # Example: 3:45 PM
+time_format_hourly: "%-I %p"        # Example: 3 PM
+time_format_daily: "%a"             # Example: Mon
+time_format_full_date: "%A, %B %-d" # Example: Monday, January 3
 
 # How much forecast data to show
 hourly_count: 8        # number of hourly entries in the strip (1–48)
