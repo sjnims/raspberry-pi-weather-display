@@ -1,4 +1,11 @@
-"""Unit tests for the WeatherResponse Pydantic model and build_context helper."""
+"""Tests for weather data models and response parsing.
+
+These tests verify that:
+1. Sample JSON responses from OpenWeather can be parsed correctly
+2. Model validation catches malformed responses
+3. Optional fields are handled properly
+4. Timezone conversions work as expected
+"""
 
 from __future__ import annotations
 
