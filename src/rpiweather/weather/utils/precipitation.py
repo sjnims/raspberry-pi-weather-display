@@ -45,4 +45,10 @@ class PrecipitationUtils:
             return ""
         if imperial:
             amount = UnitConverter.mm_to_inches(amount)
+            rounded = round(amount, 2)
+            s = str(rounded)
+            # Remove trailing zeros and dot if needed (e.g. 0.10 -> 0.1, 0.00 -> "")
+            if "." in s:
+                s = s.rstrip("0").rstrip(".")
+            return s
         return f"{amount:.2f}"

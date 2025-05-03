@@ -7,26 +7,14 @@ These tests verify that:
 4. Timezone conversions work as expected
 """
 
-from __future__ import annotations
-
-from pathlib import Path
 import pytest
 from typing import Any
 from pydantic import ValidationError
+from pathlib import Path
 
 from rpiweather.weather.api import WeatherAPI
 from rpiweather.weather.models import WeatherResponse
 from rpiweather.settings import UserSettings
-
-# Path to fixture JSON
-FIXTURE = Path(__file__).parent / "data" / "onecall_sample.json"
-SAMPLE_JSON = FIXTURE.read_text(encoding="utf-8")
-
-
-@pytest.fixture
-def weather_response() -> WeatherResponse:
-    """Fixture for a WeatherResponse instance."""
-    return WeatherResponse.model_validate_json(SAMPLE_JSON)
 
 
 @pytest.fixture
@@ -60,7 +48,8 @@ def bad_weather_json() -> str:
     """Return OneCall sample with a required field removed (lat)."""
     import json
 
-    bad_data: dict[str, "Any"] = json.loads(SAMPLE_JSON)
+    path = Path("tests/data/onecall_sample.json")
+    bad_data: dict[str, Any] = json.loads(path.read_text())
     bad_data.pop("lat", None)  # remove required field
     return json.dumps(bad_data)
 

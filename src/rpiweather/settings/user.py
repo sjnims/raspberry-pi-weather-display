@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import ClassVar, Literal, Optional
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 from zoneinfo import ZoneInfo
 
 
@@ -21,6 +21,12 @@ class QuietHours(BaseModel):
         ..., ge=0, le=23, description="Hour of day to begin sleeping (0-23)"
     )
     end: int = Field(..., ge=0, le=23, description="Hour of day to end sleeping (0-23)")
+
+    @model_validator(mode="after")
+    def check_start_not_equal_end(self) -> "QuietHours":
+        if self.start == self.end:
+            raise ValueError("quiet_hours start and end cannot be the same")
+        return self
 
     def is_quiet_time(self, current_time: Optional[datetime] = None) -> bool:
         """Check if the current or specified time is within quiet hours.
@@ -123,9 +129,6 @@ class UserSettings(BaseModel):
     def validate_quiet(
         cls, v: Optional[QuietHours]
     ) -> Optional[QuietHours]:  # noqa: D401
-        """Ensure quiet_hours.start != quiet_hours.end."""
-        if v and v.start == v.end:
-            raise ValueError("quiet_hours start and end cannot be identical")
         return v
 
     # ---- convenience methods ----

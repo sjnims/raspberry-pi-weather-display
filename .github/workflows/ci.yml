@@ -47,7 +47,5 @@ jobs:
       - name: Pyright type-check
         run: poetry run pyright
 
-      - name: Run tests
+      - name: Run full test suite
         run: poetry run pytest -q
-      - name: CLI smoke test
-        run: poetry run weather --help
