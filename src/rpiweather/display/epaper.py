@@ -4,7 +4,7 @@ from typing import Final, Optional, Any
 import logging
 
 from rpiweather.display.protocols import DisplayDriver
-from rpiweather.constants import RefreshMode
+from rpiweather.settings import RefreshMode
 
 # Constants
 WIDTH: Final = 1872

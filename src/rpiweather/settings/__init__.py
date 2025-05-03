@@ -11,6 +11,8 @@ from .application import (
     AppPaths,
     DateTimeFormats,
     RefreshSettings,
+    RefreshMode,
+    StayAwakeURL,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "AppPaths",
     "DateTimeFormats",
     "RefreshSettings",
+    "RefreshMode",
+    "StayAwakeURL",
 ]

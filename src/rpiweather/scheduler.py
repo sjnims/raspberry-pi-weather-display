@@ -5,9 +5,9 @@ import logging
 from datetime import timedelta
 from typing import Optional, TYPE_CHECKING
 
-from rpiweather.constants import (
-    DEFAULT_STAY_AWAKE_URL,
-    FULL_REFRESH_INTERVAL,
+from rpiweather.settings import (
+    StayAwakeURL,
+    RefreshSettings,
     RefreshMode,
 )
 from rpiweather.remote import create_wake_state_provider
@@ -34,7 +34,7 @@ class Scheduler:
 
         # Resolve stay-awake URL: CLI override → config → default
         self.stay_awake_url = (
-            stay_awake_url or self.config.stay_awake_url or DEFAULT_STAY_AWAKE_URL
+            stay_awake_url or self.config.stay_awake_url or StayAwakeURL.url
         )
 
     def run(
@@ -75,7 +75,8 @@ class Scheduler:
 
             # Determine if a full e-ink refresh is due
             full_refresh_needed = (
-                now - self.display.last_full_refresh > FULL_REFRESH_INTERVAL
+                now - self.display.last_full_refresh
+                > RefreshSettings.full_refresh_interval
             )
 
             # Fetch data and render

@@ -27,12 +27,7 @@ from rpiweather.settings import UserSettings, ApplicationSettings
 from rpiweather.display.epaper import IT8951Display
 from rpiweather.display.protocols import DisplayDriver
 from rpiweather.display.error_ui import ErrorRenderer
-from rpiweather.constants import (
-    PREVIEW_DIR,
-    PREVIEW_HTML_NAME,
-    PREVIEW_PNG_NAME,
-    RefreshMode,
-)
+from rpiweather.settings import RefreshMode
 from rpiweather.display.render import (
     DashboardContextBuilder,
     TemplateRenderer,
@@ -256,11 +251,11 @@ class WeatherDisplay:
 
         # Render HTML template using OO approach
         html = self.template_renderer.dashboard_template.render(**ctx)  # type: ignore[reportUnknownMemberType]
-        out_dir = Path(PREVIEW_DIR)
+        out_dir = self.settings.paths.preview_dir
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        html_path = out_dir / PREVIEW_HTML_NAME
-        png_path = out_dir / PREVIEW_PNG_NAME
+        html_path = out_dir / self.settings.paths.preview_html
+        png_path = out_dir / self.settings.paths.preview_png
         html_path.write_text(html, encoding="utf-8")
 
         # Generate PNG for display using OO approach
@@ -279,7 +274,7 @@ class WeatherDisplay:
 
     def _serve_preview_in_browser(self) -> None:
         """Start HTTP server and open browser for preview."""
-        url = f"http://localhost:8000/{PREVIEW_HTML_NAME}"
+        url = f"http://localhost:8000/{self.settings.paths.preview_html}"
         typer.echo(f"Serving preview on {url} - press Ctrl-C to quit")
 
         try:
@@ -288,7 +283,14 @@ class WeatherDisplay:
             logger.debug("Could not open browser: %s", exc)
 
         subprocess.call(
-            ["python3", "-m", "http.server", "8000", "--directory", PREVIEW_DIR]
+            [
+                "python3",
+                "-m",
+                "http.server",
+                "8000",
+                "--directory",
+                self.settings.paths.preview_dir,
+            ]
         )
 
     def _render_error_screen(

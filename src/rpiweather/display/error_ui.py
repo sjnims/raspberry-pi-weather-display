@@ -9,7 +9,7 @@ from jinja2 import Template
 from rpiweather.display.protocols import DisplayDriver
 from rpiweather.system.status import SystemStatus
 from rpiweather.display.epaper import IT8951Display
-from rpiweather.constants import RefreshMode
+from rpiweather.settings import RefreshMode
 
 
 class HtmlRenderer(Protocol):
