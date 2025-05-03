@@ -35,6 +35,28 @@ A self‑contained Python 3 application that transforms a **Raspberry Pi Zero 2 
 
 ---
 
+## Power Optimizations
+
+| Tweak                                  | Approx. Savings |
+|----------------------------------------|-----------------|
+| HDMI disabled                          | ~25 mA          |
+| CPU 700 MHz + powersave                | ~20 mA          |
+| Bluetooth off                          | ~6 mA           |
+| ACT & PWR LEDs off                     | ~3 mA           |
+| Wi‑Fi APS‑SD                           | ~10 mA          |
+| tmpfs `/var/log` & `/tmp`              | ~1–2 mA         |
+| Auto power-off (between refreshes + quiet hours) | ~15–18 mA  |
+
+**Average current draw: ~6–9 mA** depending on refresh frequency.
+
+Battery life estimates (12,000 mAh battery):
+
+2 refreshes/day → **50–60 days**
+4–6 refreshes/day → **30–40 days**
+constant idle (no sleep) → **21–23 days**
+
+---
+
 ## Quick Start
 
 ```bash
@@ -188,25 +210,54 @@ watchmedo shell-command \
 
 ---
 
-## Power Optimizations
+## Contributing
 
-| Tweak                                  | Approx. Savings |
-|----------------------------------------|-----------------|
-| HDMI disabled                          | ~25 mA          |
-| CPU 700 MHz + powersave                | ~20 mA          |
-| Bluetooth off                          | ~6 mA           |
-| ACT & PWR LEDs off                     | ~3 mA           |
-| Wi‑Fi APS‑SD                           | ~10 mA          |
-| tmpfs `/var/log` & `/tmp`              | ~1–2 mA         |
-| Auto power-off (between refreshes + quiet hours) | ~15–18 mA  |
+hank you for considering contributing to this project! Here's how to get started:
 
-**Average current draw: ~6–9 mA** depending on refresh frequency.
+1. **Fork the repository**: Click the "Fork" button at the top right of this page to create your own copy of the repository.
 
-Battery life estimates (12,000 mAh battery):
+2. **Clone the forked repository**: Use the following command to clone your forked repository to your local machine:
 
-2 refreshes/day → **50–60 days**
-4–6 refreshes/day → **30–40 days**
-constant idle (no sleep) → **21–23 days**
+   ```bash
+   git clone <your-repo-url>
+   ```
+   Replace `<your-repo-url>` with the URL of your forked repository.
+
+3. **Create a new branch**: Before making any changes, create a new branch for your feature or bug fix:
+
+   ```bash
+   git checkout -b my-feature-branch
+   ```
+   Replace `my-feature-branch` with a descriptive name for your branch.
+
+4. **Make your changes**: Edit the code as needed in your branch.
+
+5. **Test your changes**: Run the tests to ensure everything works as expected:
+
+   ```bash
+   ruff check .
+   pyright
+   poetry run pytest -q
+   ```
+
+6. **Commit your changes**: Once you're satisfied with your changes, commit them with a descriptive message:
+
+   ```bash
+   git add .
+   git commit -m "Add my feature"
+   ```
+
+7. **Push your changes**: After committing, push your changes to your forked repository:
+
+   ```bash
+   git push origin my-feature-branch
+   ```
+
+Replace `my-feature-branch` with the name of your branch.
+
+8. **Create a pull request**: Go to the original repository and click on the "Pull requests" tab. Click the "New pull request" button and select your branch. Provide a clear description of your changes and submit the pull request.
+
+9. **Wait for review**: The project maintainers will review your pull request. They may ask for changes or provide feedback.
 
 ---
 
