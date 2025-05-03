@@ -193,16 +193,18 @@ class BatteryManager:
 
     @staticmethod
     def get_refresh_delay_minutes(base_minutes: int, soc: int) -> int:
-        """Calculate adaptive refresh delay based on battery level."""
+        """Increase refresh interval as SoC drops; minimum is base_minutes, no upper clamp."""
         if soc <= 5:
-            return base_minutes * 4
+            scale = 4.0
         elif soc <= 15:
-            return base_minutes * 3
+            scale = 3.0
         elif soc <= 25:
-            return base_minutes * 2
+            scale = 2.0
         elif soc <= 50:
-            return int(base_minutes * 1.5)
-        return base_minutes
+            scale = 1.5
+        else:
+            scale = 1.0
+        return int(base_minutes * scale)
 
     def should_power_off(self, soc: int, now: datetime) -> bool:
         """Determine if system should power off based on battery and time."""
