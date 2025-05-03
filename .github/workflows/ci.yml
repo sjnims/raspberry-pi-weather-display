@@ -49,5 +49,8 @@ jobs:
       - name: Pyright type-check
         run: poetry run pyright
 
+      - name: Use sample config in CI
+        run: cp config-sample.yaml config.yaml
+
       - name: Run full test suite
         run: poetry run pytest -q
