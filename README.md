@@ -1,5 +1,8 @@
 # Raspberry Pi E‑Ink Weather Display
 
+[![CI](https://github.com/sjnims/raspberry-pi-weather-display/actions/workflows/ci.yml/badge.svg)](https://github.com/sjnims/raspberry-pi-weather-display/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A self‑contained Python 3 application that transforms a **Raspberry Pi Zero 2 W** and a **Waveshare e‑paper HAT** into an ultra‑low‑power framed weather dashboard, capable of running for **50-60 days** on a single battery charge.
 
 ---
@@ -83,6 +86,11 @@ This installer:
 
 After reboot the display updates every **2 h** (less as SoC decreases beyond certain thresholds, see config below).
 
+### Run the CLI directly
+```bash
+poetry run weather --help
+```
+
 ---
 
 ## Update existing Installation
@@ -97,6 +105,8 @@ ssh YOUR-USERNAME@YOUR-PI-IP 'cd ~/raspberry-pi-weather-display && git pull --ff
 ---
 
 ## Configuration (`config.yaml`)
+
+See [`config-sample.yaml`](config-sample.yaml) for a complete and safe reference copy.
 
 ```yaml
 # Location / API
@@ -175,6 +185,14 @@ KEEP_AWAKE=1
 When this variable is present, the system will skip auto power-off and remain awake for debugging or remote preview mode. EXPERIMENTAL!
 *Note: This feature is still in development and may not work as expected.*
 
+### Run with Docker Compose
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+This starts a dev container with source-mounted volumes for live preview development.
+
 ---
 
 ## Development
@@ -218,9 +236,23 @@ watchmedo shell-command \
 
 ---
 
+## Testing
+
+To run the test suite:
+
+```bash
+ruff check .
+pyright
+poetry run pytest -q
+```
+
+Make sure your virtualenv is active (`poetry shell`) or use `poetry run` as shown.
+
+---
+
 ## Contributing
 
-hank you for considering contributing to this project! Here's how to get started:
+Thank you for considering contributing to this project! Here's how to get started:
 
 1. **Fork the repository**: Click the "Fork" button at the top right of this page to create your own copy of the repository.
 
@@ -260,8 +292,7 @@ hank you for considering contributing to this project! Here's how to get started
    ```bash
    git push origin my-feature-branch
    ```
-
-Replace `my-feature-branch` with the name of your branch.
+   Replace `my-feature-branch` with the name of your branch.
 
 8. **Create a pull request**: Go to the original repository and click on the "Pull requests" tab. Click the "New pull request" button and select your branch. Provide a clear description of your changes and submit the pull request.
 
