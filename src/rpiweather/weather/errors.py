@@ -10,10 +10,12 @@ from typing import Any, Dict, Optional
 
 
 class WeatherAPIError(Exception):
-    """Base exception for weather API errors.
+    """Error during OpenWeather API request or response parsing.
 
-    This provides a consistent interface for all weather-related errors,
-    allowing calling code to handle different error types uniformly.
+    Raised when the API request fails due to network issues,
+    invalid API key, rate limiting, or malformed response data.
+    Includes the underlying exception and response details
+    when available.
     """
 
     def __init__(

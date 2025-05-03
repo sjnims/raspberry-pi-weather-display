@@ -255,7 +255,12 @@ class Daily(TimeStampModel):
 
 
 class WeatherResponse(BaseModel):
-    """Top-level weather response from OpenWeather OneCall API."""
+    """Weather data container parsed from OpenWeather API response.
+
+    Organizes weather data into logical components (current, hourly, daily)
+    and validates the structure of API responses. Handles timezone conversions
+    and ensures consistent data types across the application.
+    """
 
     lat: float
     lon: float

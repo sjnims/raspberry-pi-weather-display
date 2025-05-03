@@ -9,7 +9,12 @@ from rpiweather.weather.utils.units import UnitConverter
 
 
 class PrecipitationUtils:
-    """Utilities for handling precipitation data."""
+    """Utilities for processing precipitation forecast data.
+
+    Provides methods to calculate precipitation probability and amounts,
+    determine precipitation types (rain, snow, etc.), and format
+    precipitation data for display.
+    """
 
     @staticmethod
     def get_one_hour_amt(mapping: Optional[Mapping[str, Any]]) -> float:

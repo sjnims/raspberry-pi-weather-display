@@ -8,7 +8,12 @@ from rpiweather.types.weather import WeatherObj
 
 
 class WeatherIcons:
-    """Weather icon management and mapping utilities."""
+    """Weather icon mapping and retrieval utilities.
+
+    Maps OpenWeatherMap condition codes to icon filenames,
+    handles special cases like day/night variations, and
+    provides helper methods for moon phase icons.
+    """
 
     # Class variable to store the icon mapping
     _icon_map: Dict[str, str] = {}

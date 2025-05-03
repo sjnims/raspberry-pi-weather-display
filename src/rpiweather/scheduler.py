@@ -21,7 +21,18 @@ logger = logging.getLogger("rpiweather")
 
 
 class Scheduler:
-    """Encapsulates the main fetch→render→display loop with power management."""
+    """Manages application refresh cycles and sleep scheduling.
+
+    Controls when the application should:
+    - Refresh the display
+    - Enter sleep mode to conserve power
+    - Wake up for the next update
+    - Stay awake based on remote configuration
+
+    The scheduler adjusts refresh intervals based on battery status
+    and can check a remote URL to determine if the device should
+    stay awake.
+    """
 
     def __init__(
         self,

@@ -43,7 +43,12 @@ class QuietHours(BaseModel):
 
 
 class UserSettings(BaseModel):
-    """Schema for user-configurable settings in config.yaml."""
+    """User settings for the application behavior, and for the physical
+    e-ink display. These values can be overridden by user settings in
+    config.yaml.
+
+    Default values are set for the 10.3" 1872x1404 Waveshare e-ink HAT display.
+    """
 
     # Default search paths for configuration
     DEFAULT_CONFIG_PATHS: ClassVar[list[Path]] = [

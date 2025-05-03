@@ -6,10 +6,14 @@ from rpiweather.settings import RefreshMode
 
 
 class HtmlRenderer(Protocol):
-    """Protocol for HTML to image rendering."""
+    """Protocol defining the interface for HTML renderers.
+
+    Implementations of this protocol must provide a method to render
+    HTML content to an image file at a specified path.
+    """
 
     def render_to_image(self, html: str, output_path: Path) -> None:
-        """Render HTML to an image file.
+        """Render HTML to an image.
 
         Args:
             html: HTML content to render
@@ -20,7 +24,15 @@ class HtmlRenderer(Protocol):
 
 @runtime_checkable
 class Display(Protocol):
-    """Protocol defining the interface for display devices."""
+    """Protocol defining the interface for display devices.
+
+    This protocol abstracts the hardware-specific details of different display
+    technologies (e-ink, LCD, etc.) to allow the application to work with
+    any compatible display driver.
+
+    Runtime checking allows the application to detect if an object implements
+    this protocol at runtime rather than just during type checking.
+    """
 
     def display_image(
         self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE

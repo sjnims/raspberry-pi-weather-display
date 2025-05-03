@@ -4,7 +4,18 @@ from __future__ import annotations
 
 
 class UnitConverter:
-    """Unit conversion utilities for weather measurements."""
+    """Weather unit conversion utilities.
+
+    Converts between different measurement systems (metric/imperial) and
+    provides formatted representations for:
+    - Temperature (°C/°F)
+    - Wind speed (m/s, km/h, mph)
+    - Pressure (hPa, inHg)
+    - Precipitation (mm, in)
+
+    Also includes conversions to user-friendly formats like
+    cardinal directions and Beaufort scale.
+    """
 
     # Wind direction constants
     DIRECTIONS = [

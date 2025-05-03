@@ -54,7 +54,19 @@ logger: logging.Logger = logging.getLogger("rpiweather")
 
 
 class WeatherDisplay:
-    """Main controller class for the weather display application."""
+    """Main controller class for the weather display application.
+
+    This class orchestrates the entire weather display workflow:
+    - Loading configuration and initializing components
+    - Fetching and processing weather data
+    - Managing the battery and power state
+    - Rendering the dashboard or error screens
+    - Updating the e-ink display
+    - Handling refresh cycles
+
+    All application dependencies are initialized here, making this
+    the central coordination point for the application.
+    """
 
     pijuice: Optional[PiJuiceLike]  # Add this explicit field type
 
@@ -157,6 +169,14 @@ class WeatherDisplay:
         once: bool = False,
     ) -> bool:
         """Fetch weather data and render the dashboard.
+
+        This is the main application workflow, orchestrating:
+        1. Retrieving battery status
+        2. Fetching weather data from OpenWeather API
+        3. Preparing timestamps for display
+        4. Rendering the dashboard or error screen
+        5. Optionally serving a preview in a browser
+        6. Updating the e-ink display
 
         Args:
             preview: Generate preview HTML only (no PNG or display)
@@ -336,7 +356,26 @@ def run(
         "If omitted, value from config.yaml or the default URL is used.",
     ),
 ) -> None:
-    """Run the weather display application."""
+    """Run the weather display application.
+
+    This is the main entry point for the weather display application.
+    It initializes the display controller and scheduler, then starts
+    the application cycle.
+
+    The application will continuously refresh the display at intervals
+    defined in the configuration, and can optionally enter low-power
+    sleep modes when battery is low.
+
+    Examples:
+        # Run normally with config file
+        $ rpiweather run --config config.yaml
+
+        # Generate a preview without updating display
+        $ rpiweather run --config config.yaml --preview --serve
+
+        # Run once for testing
+        $ rpiweather run --config config.yaml --once --debug
+    """
     display = WeatherDisplay(config, display_driver=IT8951Display(), debug=debug)
     scheduler = Scheduler(
         display, stay_awake_url or display.settings.stay_awake_url.url

@@ -8,7 +8,14 @@ from zoneinfo import ZoneInfo
 
 
 class TimeUtils:
-    """Utilities for date and time operations."""
+    """Time-related utility functions.
+
+    Centralized utilities for working with dates and times:
+    - Timezone conversions
+    - Datetime formatting with user preferences
+    - Time difference calculations
+    - Current time retrieval with proper timezone handling
+    """
 
     @staticmethod
     def to_local_datetime(timestamp: int, timezone_name: str = "UTC") -> datetime:

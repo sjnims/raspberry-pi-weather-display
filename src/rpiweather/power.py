@@ -152,9 +152,11 @@ class PowerManager:
         return False
 
     def shutdown(self) -> None:
-        """Initiate system shutdown.
+        """Safely shut down the Raspberry Pi.
 
-        Uses 'sudo shutdown -h now' command.
+        Initiates a clean system shutdown..
+        This should be used when battery is critically low to prevent
+        filesystem corruption.
         """
         try:
             subprocess.run(
@@ -171,7 +173,15 @@ class PowerManager:
 
 # ── Battery & Quiet-Hours Policy ──────────────────────────────────────────────
 class BatteryManager:
-    """Manages battery-specific logic for refresh timing and power decisions."""
+    """Battery status monitoring for Raspberry Pi.
+
+    Interfaces with Raspberry Pi GPIO pins to monitor battery status
+    from compatible battery HATs/pHATs. Currently supports:
+    - PiJuice HAT
+
+    Provides standardized access to battery state regardless of
+    the underlying hardware implementation.
+    """
 
     def __init__(self, config: UserSettings) -> None:
         """Initialize the battery manager with configuration.

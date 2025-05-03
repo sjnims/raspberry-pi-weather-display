@@ -5,10 +5,16 @@ from typing import Optional
 
 @dataclass
 class SystemStatus:
-    """Represents the current status of the system hardware.
+    """System hardware status information.
 
-    This class encapsulates all system-related information including
-    battery status, charging state, and resource utilization.
+    Provides information about the Raspberry Pi's current hardware state,
+    particularly battery-related metrics:
+    - Battery state of charge (percentage)
+    - Charging status
+    - Warning flags for low battery conditions
+
+    This information is displayed in the dashboard UI and used for
+    power management decisions.
     """
 
     # Battery information

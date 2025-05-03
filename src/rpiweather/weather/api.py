@@ -42,7 +42,14 @@ HTTP_ERROR_MAP: Final = {
 
 
 class WeatherAPI:
-    """OpenWeather API client for fetching weather data."""
+    """OpenWeather API client for the One Call API.
+
+    Handles API requests, network error handling, rate limiting, and
+    caching for the OpenWeather One Call API. Transforms raw JSON responses
+    into strongly-typed WeatherResponse objects.
+
+    Requires a valid API key and location coordinates from user settings.
+    """
 
     def __init__(self, config: UserSettings, timeout: int = 10) -> None:
         """Initialize the weather API client.
@@ -57,11 +64,17 @@ class WeatherAPI:
     def fetch_weather(self) -> WeatherResponse:
         """Retrieve weather and air quality data.
 
+        Makes API requests to OpenWeather One Call API and Air Quality API,
+        merges the responses, and validates them into a strongly-typed model.
+
         Returns:
-            Validated WeatherResponse object
+            Validated WeatherResponse object including weather and air quality data
 
         Raises:
-            WeatherAPIError: If there's an error fetching the data
+            NetworkError: When network connectivity issues occur
+            AuthenticationError: When API key is invalid
+            RateLimitError: When API rate limits are exceeded
+            WeatherAPIError: For other API-related errors
         """
         # Get the main weather data
         params = {
@@ -147,13 +160,19 @@ class WeatherAPI:
             return {"aqi": "N/A"}
 
     def build_context(self, weather: WeatherResponse) -> dict[str, Any]:
-        """Transform raw API data into template-friendly context.
+        """Build template context dictionary from weather data.
+
+        Processes raw weather data into a form ready for template rendering:
+        - Formats dates and times according to user preferences
+        - Calculates derived values (UV index time, daylight hours)
+        - Prepares helper functions for templates
+        - Sets up measurement unit labels based on user preferences
 
         Args:
-            weather: Weather response object
+            weather: Weather data response object
 
         Returns:
-            Dictionary with template context data
+            Dictionary with processed values ready for template rendering
         """
         now = datetime.now(timezone.utc).astimezone()
         today = now.date()

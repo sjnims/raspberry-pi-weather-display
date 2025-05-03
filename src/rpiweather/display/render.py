@@ -23,7 +23,21 @@ from rpiweather.utils import TimeUtils
 
 # Define classes first
 class TemplateRenderer:
-    """Handles Jinja2 template environment and rendering."""
+    """Handles Jinja2 template environment and rendering.
+
+    This class configures a Jinja2 environment with custom filters
+    for the weather dashboard. It provides methods to render templates
+    with weather and system data.
+
+    Capabilities:
+    - Custom template filters for weather data formatting
+    - Helper functions for date/time formatting
+    - Wind direction and icon conversion
+    - Static asset resolution
+
+    The renderer uses paths from application settings by default,
+    but can be configured with custom template directories.
+    """
 
     dashboard_template: Template
 
@@ -103,7 +117,19 @@ class TemplateRenderer:
 
 
 class DashboardContextBuilder:
-    """Builds context data for dashboard templates."""
+    """Builds context data for dashboard templates.
+
+    Transforms raw weather and system data into a complete template context
+    with derived values, formatting preferences, and unit conversions ready
+    for rendering.
+
+    The builder:
+    - Processes hourly and daily forecast data
+    - Applies the user's unit preferences (metric/imperial)
+    - Formats dates and times according to user settings
+    - Calculates additional values like UVI max, daylight hours, etc.
+    - Prepares icon and label mappings
+    """
 
     def __init__(self, user_settings: Optional[UserSettings] = None) -> None:
         """Initialize with configuration.
@@ -217,7 +243,18 @@ class DashboardContextBuilder:
 
 
 class WkhtmlToPngRenderer(HtmlRenderer):
-    """HTML to PNG renderer using wkhtmltoimage."""
+    """HTML to PNG renderer using wkhtmltoimage.
+
+    Converts HTML content to PNG images using the wkhtmltoimage command-line
+    tool, which must be installed on the system. On Linux, it uses xvfb-run
+    to handle headless rendering.
+
+    This renderer supports custom dimensions (width/height) for the output
+    image, with defaults from user settings for the e-ink display.
+
+    Note: Requires wkhtmltopdf (https://wkhtmltopdf.org/) installed on the
+    system, and on Linux also requires xvfb.
+    """
 
     def __init__(
         self,
@@ -225,7 +262,13 @@ class WkhtmlToPngRenderer(HtmlRenderer):
         height: Optional[int] = None,
         user_settings: Optional[UserSettings] = None,
     ) -> None:
-        """Initialize with optional custom dimensions."""
+        """Initialize renderer with optional custom dimensions.
+
+        Args:
+            width: Custom width in pixels (default: from user settings)
+            height: Custom height in pixels (default: from user settings)
+            user_settings: User configuration (default: loaded from config.yaml)
+        """
         self.user_settings = user_settings or UserSettings.load()
         self.width = width or self.user_settings.display_width
         self.height = height or self.user_settings.display_height
