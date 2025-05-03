@@ -4,10 +4,10 @@
 # Copy this file to config.yaml and customize for your setup
 
 # Location & API credentials
-lat: 33.8852         # Your latitude
-lon: -84.5144        # Your longitude
-city: "Smyrna, GA"  # Display name for your location
-api_key: "your-openweather-api-key"  # Get from openweathermap.org
+lat: 42.774         # Your latitude
+lon: -78.787        # Your longitude
+city: "Orchard Park, NY"  # Display name for your location
+api_key: "${OWM_API_KEY}"  # Get from openweathermap.org and load to your environment
 
 # Display preferences
 units: imperial      # 'imperial' for °F/mph or 'metric' for °C/m/s

@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import ClassVar, Literal, Optional
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 from zoneinfo import ZoneInfo
+
+# Load environment variables from .env file(s)
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def _interpolate_env(content: str) -> str:
+    return re.sub(r"\$\{(\w+)\}", lambda m: os.getenv(m.group(1), ""), content)
 
 
 class QuietHours(BaseModel):
@@ -230,7 +240,8 @@ class UserSettings(BaseModel):
         import yaml  # local import to avoid hard dep for callers
 
         try:
-            data = yaml.safe_load(path.read_text())
+            raw = _interpolate_env(path.read_text())
+            data = yaml.safe_load(raw)
         except Exception as exc:  # pragma: no cover
             raise RuntimeError(f"Unable to read config YAML: {exc}") from exc
 

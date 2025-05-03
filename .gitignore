@@ -20,6 +20,7 @@ Thumbs.db
 
 # Secrets (use config-sample.yaml in repo)
 config.yaml
+.env
 
 # Systemd copies outside tree
 *.service

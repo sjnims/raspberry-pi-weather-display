@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
 
     steps:
       - name: Checkout
