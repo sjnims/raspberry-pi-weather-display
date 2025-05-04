@@ -49,3 +49,24 @@ def test_weather_preview_command(tmp_path: Path) -> None:
     )
     print(result.output)
     assert result.exit_code == 0
+
+
+def test_weather_config_wizard(tmp_path: Path) -> None:
+    config_path = tmp_path / "wizard.yaml"
+
+    # Simulate user providing valid inputs for the wizard prompts
+    result = runner.invoke(
+        app,
+        ["config", "wizard", str(config_path)],
+        input=(
+            "33.749\n"  # Latitude (float)
+            "-84.388\n"  # Longitude (float)
+            "Atlanta\n"  # City
+            "test-api-key-123\n"  # API key
+            "imperial\n"  # Units
+        ),
+    )
+
+    assert result.exit_code == 0
+    assert config_path.exists()
+    assert "config written to" in result.output.lower()
