@@ -111,9 +111,9 @@ See [`config-sample.yaml`](config-sample.yaml) for a complete and safe reference
 
 ```yaml
 # Location / API
-lat: 33.8852
-lon: -84.5144
-city: Smyrna, GA
+lat: 42.774
+lon: -78.787
+city: "Orchard Park, NY" # GO BILLS!
 api_key: "YOUR_OPENWEATHER_KEY"
 
 # Units & formatting
