@@ -103,3 +103,12 @@ def test_build_context_keys(
     assert callable(ctx["hourly_precip"])
     assert isinstance(ctx["hourly"], list)
     assert isinstance(ctx["daily"], list)
+
+
+def test_context_sets_weekday_short(
+    config: UserSettings, sample_weather: WeatherResponse
+) -> None:
+    ctx = WeatherAPI(config).build_context(sample_weather)
+    for day in ctx["daily"]:
+        assert isinstance(day.weekday_short, str)
+        assert len(day.weekday_short) >= 2
