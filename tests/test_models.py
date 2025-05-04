@@ -103,3 +103,19 @@ def test_build_context_contains_key(
     """Each expected key should be present in the build_context output."""
     ctx = WeatherAPI(dummy_config).build_context(weather_response)
     assert ctx_key in ctx
+
+
+def test_moon_phase_label_roundtrip(weather_response: WeatherResponse) -> None:
+    moon_phases = [d.moon_phase for d in weather_response.daily]
+    labels = [d.moon_phase_name for d in weather_response.daily]
+    assert len(labels) == len(moon_phases)
+    for label in labels:
+        assert isinstance(label, str)
+        assert label  # non-empty
+
+
+def test_get_daily_min_max(weather_response: WeatherResponse) -> None:
+    min_temp, max_temp = weather_response.get_daily_min_max()
+    assert isinstance(min_temp, float)
+    assert isinstance(max_temp, float)
+    assert min_temp < max_temp

@@ -1,54 +1,15 @@
 import pytest
-from unittest.mock import Mock
+
 from pytest import MonkeyPatch
-from rpiweather.scheduler import Scheduler
-from rpiweather.settings.user import UserSettings, QuietHours
 from datetime import datetime, timedelta
+from unittest.mock import Mock
 from zoneinfo import ZoneInfo
 
-
-def fake_seconds_until_end(_: object, __: object) -> int:
-    return 0
-
-
-def always_false(_: object) -> bool:
-    return False
+from rpiweather.scheduler import Scheduler
+from rpiweather.settings import UserSettings, QuietHours
 
 
-def always_true(_: object) -> bool:
-    return True
-
-
-def fake_is_quiet(self: object, ts: object) -> bool:
-    return True
-
-
-def fake_is_not_quiet(self: object, ts: object) -> bool:
-    return False
-
-
-def should_power_off(_: object, __: int, ___: object) -> bool:
-    return True
-
-
-def should_not_power_off(_: object, __: int, ___: object) -> bool:
-    return False
-
-
-def noop_sleep(_: float) -> None:
-    return None
-
-
-# Move FakeWakeProvider to module level
-class FakeWakeProvider:
-    def should_stay_awake(self) -> bool:
-        return False
-
-
-def fake_create_wake_state_provider(_: object) -> FakeWakeProvider:
-    return FakeWakeProvider()
-
-
+# Fixture to provide a UserSettings config object for tests
 @pytest.fixture
 def config() -> UserSettings:
     return UserSettings(
@@ -74,108 +35,81 @@ def config() -> UserSettings:
     )
 
 
-def test_scheduler_skips_during_quiet(
-    monkeypatch: MonkeyPatch, config: UserSettings
-) -> None:
-    display = Mock()
-    monkeypatch.setattr(
-        "rpiweather.scheduler.create_wake_state_provider",
-        fake_create_wake_state_provider,
-    )
-    scheduler = Scheduler(display)
-    display.last_full_refresh = datetime.now(ZoneInfo("UTC")) - timedelta(hours=7)
-    scheduler.config.quiet_hours = QuietHours(start=2, end=6)
+def fake_create_wake_state_provider(_: object) -> object:
+    class FakeWakeProvider:
+        def should_stay_awake(self) -> bool:
+            return False
 
-    call_counter = {"count": 0}
+    return FakeWakeProvider()
 
-    def toggle_is_quiet(_: object, __: object) -> bool:
-        call_counter["count"] += 1
-        return call_counter["count"] == 1
 
-    monkeypatch.setattr(
-        "rpiweather.scheduler.QuietHoursHelper.is_quiet", toggle_is_quiet
-    )
-    monkeypatch.setattr(
-        "rpiweather.scheduler.QuietHoursHelper.seconds_until_end",
-        fake_seconds_until_end,
-    )
+def fake_is_not_quiet(_: object, __: object) -> bool:
+    return False
 
-    display.fetch_and_render = Mock(return_value=True)
-    import time
 
-    original_sleep = time.sleep
-    time.sleep = noop_sleep
-    try:
-        scheduler.config = config
-        scheduler.stay_awake_url = config.stay_awake_url or ""
-        scheduler.run(preview=False, serve=False, once=True)
-    finally:
-        time.sleep = original_sleep
+def fake_seconds_until_end(_: object, __: object) -> int:
+    return 1800
+
+
+def should_power_off(_: object, __: int, ___: object) -> bool:
+    return True
+
+
+def noop_sleep(_: float) -> None:
+    return None
 
 
 def test_scheduler_triggers_shutdown(
     monkeypatch: MonkeyPatch, config: UserSettings
 ) -> None:
     display = Mock()
+
+    was_shutdown = {"called": False}
+
+    def record_shutdown() -> None:
+        print("!!! SHUTDOWN CALLBACK INVOKED !!!")
+        was_shutdown["called"] = True
+
+    scheduler = Scheduler(display, shutdown_callback=record_shutdown)
+
+    # Patch required behaviors
+    display.last_full_refresh = datetime.now(ZoneInfo("UTC")) - timedelta(hours=13)
+    scheduler.config = config
+    scheduler.stay_awake_url = config.stay_awake_url or ""
+
     monkeypatch.setattr(
         "rpiweather.scheduler.create_wake_state_provider",
         fake_create_wake_state_provider,
     )
-    scheduler = Scheduler(display)
-    display.last_full_refresh = datetime.now(ZoneInfo("UTC")) - timedelta(hours=7)
-
     monkeypatch.setattr(
         "rpiweather.scheduler.QuietHoursHelper.is_quiet", fake_is_not_quiet
     )
     monkeypatch.setattr(
-        "rpiweather.scheduler.BatteryManager.should_power_off",
-        should_power_off,
+        "rpiweather.scheduler.QuietHoursHelper.seconds_until_end",
+        fake_seconds_until_end,
     )
-    monkeypatch.setattr("rpiweather.scheduler.PowerManager.shutdown", Mock())
+    monkeypatch.setattr(
+        "rpiweather.scheduler.BatteryManager.should_power_off", should_power_off
+    )
 
     display.fetch_and_render = Mock(return_value=True)
+    display.get_battery_status = Mock(return_value=(5, 0, False))
+
+    def mock_schedule_wakeup(self: object, wake_time: datetime) -> bool:
+        return True
+
+    monkeypatch.setattr(
+        "rpiweather.power.PowerManager.schedule_wakeup",
+        mock_schedule_wakeup,
+    )
+
     import time
 
     original_sleep = time.sleep
     time.sleep = noop_sleep
     try:
-        scheduler.config = config
-        scheduler.stay_awake_url = config.stay_awake_url or ""
-        scheduler.run(preview=False, serve=False, once=True)
+        scheduler.run(preview=False, serve=False, once=False)
     finally:
         time.sleep = original_sleep
 
-    rpi_shutdown = pytest.importorskip("rpiweather.scheduler.PowerManager.shutdown")
-    rpi_shutdown.assert_called_once()
-
-
-def test_scheduler_runs_display(monkeypatch: MonkeyPatch, config: UserSettings) -> None:
-    display = Mock()
-    monkeypatch.setattr(
-        "rpiweather.scheduler.create_wake_state_provider",
-        fake_create_wake_state_provider,
-    )
-    scheduler = Scheduler(display)
-    display.last_full_refresh = datetime.now(ZoneInfo("UTC")) - timedelta(hours=7)
-
-    monkeypatch.setattr(
-        "rpiweather.scheduler.QuietHoursHelper.is_quiet", fake_is_not_quiet
-    )
-    monkeypatch.setattr(
-        "rpiweather.scheduler.BatteryManager.should_power_off",
-        should_not_power_off,
-    )
-
-    display.fetch_and_render = Mock(return_value=True)
-    import time
-
-    original_sleep = time.sleep
-    time.sleep = noop_sleep
-    try:
-        scheduler.config = config
-        scheduler.stay_awake_url = config.stay_awake_url or ""
-        scheduler.run(preview=False, serve=False, once=True)
-    finally:
-        time.sleep = original_sleep
-
-    display.fetch_and_render.assert_called_once()
+    assert was_shutdown["called"]

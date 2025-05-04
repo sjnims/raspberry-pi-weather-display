@@ -3,7 +3,7 @@
 import time
 import logging
 from datetime import timedelta
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable
 
 from rpiweather.settings import (
     StayAwakeURL,
@@ -38,6 +38,7 @@ class Scheduler:
         self,
         display: "WeatherDisplay",
         stay_awake_url: Optional[str] = None,
+        shutdown_callback: Optional[Callable[[], None]] = None,
     ) -> None:
         # Display controller and config
         self.display = display
@@ -47,6 +48,8 @@ class Scheduler:
         self.stay_awake_url = (
             stay_awake_url or self.config.stay_awake_url or StayAwakeURL.url
         )
+        self.power_manager = None
+        self.shutdown_callback = shutdown_callback
 
     def run(
         self,
@@ -59,7 +62,7 @@ class Scheduler:
 
         # Helpers and policy managers
         quiet_helper = QuietHoursHelper(self.config.quiet_hours)
-        power_manager = PowerManager()
+        self.power_manager = PowerManager()
         battery_manager = BatteryManager(self.config)
 
         while True:
@@ -122,14 +125,17 @@ class Scheduler:
             # Handle power-off condition
             if battery_manager.should_power_off(soc, now):
                 wake_dt = TimeUtils.now_localized() + timedelta(minutes=sleep_min)
-                power_manager.schedule_wakeup(wake_dt)
+                self.power_manager.schedule_wakeup(wake_dt)
                 logger.info(
                     "Powering off for %d min (SOC %d%%) → wake at %s",
                     sleep_min,
                     soc,
                     TimeUtils.format_datetime(wake_dt, "%H:%M"),
                 )
-                power_manager.shutdown()
+                if self.shutdown_callback:
+                    self.shutdown_callback()
+                else:
+                    self.power_manager.shutdown()
                 break
 
             # Normal sleep
