@@ -13,5 +13,6 @@
       "root": "src"
     }
   ],
-  "extraPaths": ["./src"]
+  "extraPaths": ["./src"],
+  "reportPrivateUsage": "none",
 }
