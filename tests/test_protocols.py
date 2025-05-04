@@ -58,13 +58,14 @@ class TestMockDisplay:
 
 
 class TestMockHtmlRenderer:
-    def test_render_to_image_tracking(self):
+    def test_render_to_image_tracking(self, tmp_path: Path):
         """Test that render_to_image calls are properly tracked."""
         renderer = MockHtmlRenderer()
         test_html = "<html>Test</html>"
-        test_path = Path("test_output.png")  # Changed from /test/output.png
+        test_path = tmp_path / "test_output.png"
 
-        renderer.render_to_image(test_html, test_path)
+        # Skip file creation since we're just testing call tracking
+        renderer.render_to_image(test_html, test_path, create_file=False)
 
         assert len(renderer.render_calls) == 1
         assert renderer.render_calls[0]["html"] == test_html
@@ -75,15 +76,18 @@ class TestMockHtmlRenderer:
         renderer = MockHtmlRenderer()
         test_path = tmp_path / "output.png"
 
-        renderer.render_to_image("<html></html>", test_path)
+        # Explicitly set create_file=True since we're testing file creation
+        renderer.render_to_image("<html></html>", test_path, create_file=True)
 
         assert test_path.exists()
 
-    def test_reset_call_history(self):
+    def test_reset_call_history(self, tmp_path: Path):
         """Test that reset_call_history clears tracked calls."""
         renderer = MockHtmlRenderer()
+        test_path = tmp_path / "output.png"
 
-        renderer.render_to_image("<html></html>", Path("output.png"))
+        # Skip file creation since we're just testing call tracking
+        renderer.render_to_image("<html></html>", test_path, create_file=False)
         assert len(renderer.render_calls) == 1
 
         renderer.reset_call_history()
@@ -182,24 +186,26 @@ class TestAssertionHelpers:
 
         assert "Expected" in str(excinfo.value)
 
-    def test_assert_html_renderer_called_with_success(self):
+    def test_assert_html_renderer_called_with_success(self, tmp_path: Path):
         """Test that assert_html_renderer_called_with passes with matching parameters."""
         renderer = MockHtmlRenderer()
         test_html = "<html>Test</html>"
-        test_path = Path("output.png")
+        test_path = tmp_path / "output.png"
 
-        renderer.render_to_image(test_html, test_path)
+        # Skip file creation since we're just testing assertions
+        renderer.render_to_image(test_html, test_path, create_file=False)
 
         result = assert_html_renderer_called_with(renderer, test_html, test_path)
         assert result is True
 
-    def test_assert_html_renderer_called_with_partial_match(self):
+    def test_assert_html_renderer_called_with_partial_match(self, tmp_path: Path):
         """Test that assert_html_renderer_called_with works with partial parameters."""
         renderer = MockHtmlRenderer()
         test_html = "<html>Test</html>"
-        test_path = Path("output.png")
+        test_path = tmp_path / "output.png"
 
-        renderer.render_to_image(test_html, test_path)
+        # Skip file creation since we're just testing assertions
+        renderer.render_to_image(test_html, test_path, create_file=False)
 
         # Should pass with only html specified
         result1 = assert_html_renderer_called_with(renderer, expected_html=test_html)

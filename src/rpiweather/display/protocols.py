@@ -69,12 +69,24 @@ class MockHtmlRenderer:
     def __init__(self):
         self.render_calls: list[dict[str, object]] = []
 
-    def render_to_image(self, html: str, output_path: Path) -> None:
-        """Record the render call without actually rendering."""
+    def render_to_image(
+        self, html: str, output_path: Path, create_file: bool = True
+    ) -> None:
+        """Record the render call without actually rendering.
+
+        Args:
+            html: HTML content to render
+            output_path: Path where the image would be saved
+            create_file: If True, create an empty file at output_path
+        """
         self.render_calls.append({"html": html, "output_path": output_path})
-        # Create an empty file to simulate rendering
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.touch()
+
+        # Only create the file if requested and it's not in a test path
+        if create_file and not str(output_path).startswith("/test"):
+            # Create parent directories if they don't exist
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            # Create an empty file
+            output_path.touch()
 
     def reset_call_history(self) -> None:
         """Reset the call history for testing."""
