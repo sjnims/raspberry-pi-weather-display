@@ -15,4 +15,7 @@
   ],
   "extraPaths": ["./src"],
   "reportPrivateUsage": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none"
 }

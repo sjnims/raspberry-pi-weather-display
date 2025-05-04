@@ -14,20 +14,20 @@ import sys
 import tempfile
 import webbrowser
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 from zoneinfo import ZoneInfo
 
 # ── third‑party ──────────────────────────────────────────────────────────────
 import typer
 import yaml
 from pydantic import ValidationError
+from unittest.mock import MagicMock
 
 # ── rpiweather packages ──────────────────────────────────────────────────────
-from rpiweather.settings import UserSettings, ApplicationSettings
+from rpiweather.settings import UserSettings, ApplicationSettings, RefreshMode
 from rpiweather.display.epaper import IT8951Display
-from rpiweather.display.protocols import DisplayDriver
+from rpiweather.display.protocols import DisplayDriver, MockDisplay
 from rpiweather.display.error_ui import ErrorRenderer
-from rpiweather.settings import RefreshMode
 from rpiweather.display.render import (
     DashboardContextBuilder,
     TemplateRenderer,
@@ -52,6 +52,24 @@ app.add_typer(config_app, name="config")
 
 logger: logging.Logger = logging.getLogger("rpiweather")
 
+# Test configuration for creating test instances
+TEST_CONFIG_YAML = """\
+api_key: "test_api_key"
+lat: 42.774
+lon: -78.787
+city: Test City
+units: imperial
+timezone: "America/New_York"
+time_format_general: "%-I:%M %p"
+time_format_hourly: "%-I %p"
+time_format_daily: "%a"
+time_format_full_date: "%A, %B %-d"
+hourly_count: 8
+daily_count: 5
+refresh_minutes: 120
+vcom_volts: -1.45
+"""
+
 
 class WeatherDisplay:
     """Main controller class for the weather display application.
@@ -73,13 +91,24 @@ class WeatherDisplay:
     def __init__(
         self,
         config_path: Path,
-        display_driver: DisplayDriver | None = None,
+        display_driver: Optional[DisplayDriver] = None,
+        weather_api: Optional[WeatherAPI] = None,
+        pijuice: Optional[PiJuiceLike] = None,
+        template_renderer: Optional[TemplateRenderer] = None,
+        context_builder: Optional[DashboardContextBuilder] = None,
+        png_renderer: Optional[WkhtmlToPngRenderer] = None,
         debug: bool = False,
     ):
         """Initialize the weather display controller.
 
         Args:
             config_path: Path to config.yaml
+            display_driver: Optional custom display driver
+            weather_api: Optional custom weather API client
+            pijuice: Optional PiJuice hardware interface
+            template_renderer: Optional custom template renderer
+            context_builder: Optional custom context builder
+            png_renderer: Optional custom PNG renderer
             debug: Enable debug logging
         """
         # Configure logging
@@ -94,15 +123,16 @@ class WeatherDisplay:
         # Create centralized settings
         self.settings = ApplicationSettings(self.config)
 
-        self.weather_api = WeatherAPI(self.config)
-        self.pijuice = self._initialize_pijuice()
+        # Allow dependency injection or create defaults
+        self.weather_api = weather_api or WeatherAPI(self.config)
+        self.pijuice = pijuice or self._initialize_pijuice()
         self.error_streak = 0
         self.last_full_refresh = TimeUtils.now_localized()
 
-        # Initialize renderers
-        self.template_renderer = TemplateRenderer()
-        self.context_builder = DashboardContextBuilder(self.config)
-        self.png_renderer = WkhtmlToPngRenderer()
+        # Initialize renderers - allow dependency injection
+        self.template_renderer = template_renderer or TemplateRenderer()
+        self.context_builder = context_builder or DashboardContextBuilder(self.config)
+        self.png_renderer = png_renderer or WkhtmlToPngRenderer()
 
         # Dependency-injected display driver
         self.display_driver = display_driver or IT8951Display()
@@ -127,11 +157,7 @@ class WeatherDisplay:
             return None
 
     def _ensure_rtc_synced(self, pijuice: PiJuiceLike) -> None:
-        """Ensure the PiJuice RTC is synchronized with system time.
-
-        Args:
-            pijuice: PiJuice hardware interface
-        """
+        """Ensure the PiJuice RTC is synchronized with system time."""
         try:
             rtc_time = pijuice.rtc.GetTime()["data"]  # type: ignore[attr-defined]
             if rtc_time["year"] < 2024:
@@ -161,6 +187,32 @@ class WeatherDisplay:
 
         return soc, is_charging, battery_warning
 
+    def _get_system_status(self) -> SystemStatus:
+        """Get current system status including battery information.
+
+        Returns:
+            SystemStatus object with battery and system information
+        """
+        soc, is_charging, battery_warning = self.get_battery_status()
+        return SystemStatus(
+            soc=soc,
+            is_charging=is_charging,
+            battery_warning=battery_warning,
+        )
+
+    def _fetch_weather_data(self) -> WeatherResponse:
+        """Fetch weather data from API and prepare timestamps.
+
+        Returns:
+            WeatherResponse object with processed weather data
+
+        Raises:
+            WeatherAPIError: If weather data fetch fails
+        """
+        weather = self.weather_api.fetch_weather()
+        self._prepare_localized_timestamps(weather)
+        return weather
+
     def fetch_and_render(
         self,
         preview: bool = False,
@@ -187,26 +239,27 @@ class WeatherDisplay:
         Returns:
             True if successful, False on error
         """
-        soc, is_charging, battery_warning = self.get_battery_status()
+        # Get system status
+        status = self._get_system_status()
 
+        # Fetch weather data
         try:
-            weather = self.weather_api.fetch_weather()
-            self._prepare_localized_timestamps(weather)
-            return self._render_dashboard(
-                weather,
-                preview,
-                mode,
-                soc,
-                is_charging,
-                battery_warning,
-                serve,
-                once,
-            )
+            weather = self._fetch_weather_data()
         except WeatherAPIError as err:
             logger.error("OpenWeather error (%s): %s", err.code, err.message)
             if not preview:
-                self._render_error_screen(err, soc, is_charging)
+                self._render_error_screen(err, status.soc, status.is_charging)
             return False
+
+        # Render dashboard
+        return self._render_dashboard(
+            weather,
+            preview,
+            mode,
+            status,
+            serve,
+            once,
+        )
 
     def _prepare_localized_timestamps(self, weather: WeatherResponse) -> None:
         """Prepare localized timestamps for display.
@@ -235,9 +288,7 @@ class WeatherDisplay:
         weather: WeatherResponse,
         preview: bool,
         mode: RefreshMode,
-        soc: int,
-        is_charging: bool,
-        battery_warning: bool,
+        status: SystemStatus,
         serve: bool,
         once: bool,
     ) -> bool:
@@ -246,24 +297,15 @@ class WeatherDisplay:
         Args:
             weather: Weather data to display
             preview: Generate preview HTML only
-            mode: RefreshMode
-                Which refresh mode to use (FULL or GREYSCALE).
-            soc: Battery state of charge
-            is_charging: Whether battery is charging
-            battery_warning: Whether to show battery warning
+            mode: RefreshMode to use
+            status: System status (battery, etc.)
             serve: Serve preview on HTTP server
             once: Exit after one cycle
 
         Returns:
             True if rendering was successful
         """
-
         # Build template context using OO approach
-        status = SystemStatus(
-            soc=soc,
-            is_charging=is_charging,
-            battery_warning=battery_warning,
-        )
         ctx = self.context_builder.build_dashboard_context(weather, status)
 
         # Render HTML template using OO approach
@@ -335,8 +377,72 @@ class WeatherDisplay:
                 display_immediately=True,
             )
 
+    @classmethod
+    def create_for_testing(
+        cls,
+        config_path: Optional[Path] = None,
+        mock_weather_data: Optional[dict[str, Any]] = None,
+        mock_battery_status: tuple[int, bool, bool] = (100, False, False),
+        mock_display_driver: Optional[DisplayDriver] = None,
+    ) -> "WeatherDisplay":
+        """Create WeatherDisplay instance configured for testing.
+
+        Args:
+            config_path: Path to config file (creates default if None)
+            mock_weather_data: Mock weather data to return
+            mock_battery_status: Mock battery status as (soc, is_charging, warning)
+            mock_display_driver: Mock display driver
+
+        Returns:
+            WeatherDisplay instance configured for testing
+        """
+
+        if config_path is None:
+            # Create temp config file with reasonable defaults
+            with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as temp:
+                temp_path = Path(temp.name)
+                temp_path.write_text(TEST_CONFIG_YAML)
+                config_path = temp_path
+
+        # Create mock weather API if requested
+        mock_api = None
+        if mock_weather_data:
+            mock_api = MagicMock(spec=WeatherAPI)
+            mock_api.fetch_weather.return_value = WeatherResponse(**mock_weather_data)
+
+        # Create mock PiJuice if requested
+        mock_pijuice = None
+        if mock_battery_status != (100, False, False):
+            mock_pijuice = MagicMock(spec=PiJuiceLike)
+            # Configure the mock to return the requested battery status
+            soc, is_charging, battery_warning = mock_battery_status
+
+            # Mock the status.GetChargeLevel() method
+            mock_status = MagicMock()
+            mock_status.GetChargeLevel.return_value = {"data": soc}
+            mock_pijuice.status = mock_status
+
+            # Configure BatteryUtils.get_battery_status to return the right values
+            # Note: This is a bit of a hack, normally we'd use monkeypatch in tests
+            BatteryUtils.get_battery_status = MagicMock(
+                return_value={
+                    "is_charging": is_charging,
+                    "battery_warning": battery_warning,
+                }
+            )
+
+        return cls(
+            config_path=config_path,
+            display_driver=mock_display_driver or MockDisplay(),
+            weather_api=mock_api,
+            pijuice=mock_pijuice,
+            debug=True,
+        )
+
 
 # ───────────────────────── main command ─────────────────────────────────────
+
+
 @app.command()
 def run(
     config: Path = typer.Option(..., "--config", "-c", exists=True, dir_okay=False),
@@ -355,28 +461,20 @@ def run(
         help="Override URL that returns {'awake': true|false}. "
         "If omitted, value from config.yaml or the default URL is used.",
     ),
+    # For testing only - HIDDEN from CLI but typed for pyright
+    display_driver: Optional[str] = typer.Option(None, hidden=True),
+    weather_api: Optional[str] = typer.Option(None, hidden=True),
+    pijuice: Optional[str] = typer.Option(None, hidden=True),
 ) -> None:
-    """Run the weather display application.
+    """Run the weather display application."""
+    display = WeatherDisplay(
+        config,
+        display_driver=cast(Optional[DisplayDriver], display_driver) or IT8951Display(),
+        weather_api=cast(Optional[WeatherAPI], weather_api),
+        pijuice=cast(Optional[PiJuiceLike], pijuice),
+        debug=debug,
+    )
 
-    This is the main entry point for the weather display application.
-    It initializes the display controller and scheduler, then starts
-    the application cycle.
-
-    The application will continuously refresh the display at intervals
-    defined in the configuration, and can optionally enter low-power
-    sleep modes when battery is low.
-
-    Examples:
-        # Run normally with config file
-        $ rpiweather run --config config.yaml
-
-        # Generate a preview without updating display
-        $ rpiweather run --config config.yaml --preview --serve
-
-        # Run once for testing
-        $ rpiweather run --config config.yaml --once --debug
-    """
-    display = WeatherDisplay(config, display_driver=IT8951Display(), debug=debug)
     scheduler = Scheduler(
         display, stay_awake_url or display.settings.stay_awake_url.url
     )
