@@ -1,4 +1,8 @@
 import pytest
+from pathlib import Path
+from unittest.mock import patch
+from datetime import datetime, timedelta
+
 from rpiweather.weather.models import WeatherResponse
 from rpiweather.system.status import SystemStatus
 from rpiweather.settings.user import UserSettings
@@ -6,9 +10,9 @@ from rpiweather.display.render import (
     DashboardContextBuilder,
     TemplateRenderer,
     WkhtmlToPngRenderer,
+    ts_to_dt,
+    wind_rotation,
 )
-from pathlib import Path
-from unittest.mock import patch
 
 
 @pytest.fixture
@@ -77,3 +81,21 @@ def test_png_renderer_runs_subprocess(tmp_path: Path) -> None:
         renderer.render_to_image(html, output_path)
         mock_run.assert_called()
         assert output_path.name in str(mock_run.call_args[0][0])
+
+
+def test_ts_to_dt_converts_epoch_to_datetime() -> None:
+    dt = ts_to_dt(1714785600)  # 2024-05-04T12:00:00Z
+    assert isinstance(dt, datetime)
+    assert dt.year == 2024
+    assert dt.month == 5
+    assert dt.day == 4
+    assert dt.tzinfo is not None
+    assert dt.tzinfo.utcoffset(dt) == timedelta(0)
+
+
+def test_wind_rotation_returns_correct_css_angle() -> None:
+    assert wind_rotation(0) == "rotate(180deg)"
+    assert wind_rotation(90) == "rotate(270deg)"
+    assert wind_rotation(180) == "rotate(0deg)"
+    assert wind_rotation(270) == "rotate(90deg)"
+    assert wind_rotation(None) is None

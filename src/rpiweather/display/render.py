@@ -21,6 +21,15 @@ from rpiweather.weather.utils import (
 from rpiweather.utils import TimeUtils
 
 
+# Top-level exports for Pyright
+def wind_rotation(deg: float | None, direction: str = "towards") -> str | None:
+    """Return CSS rotation for wind bearing, or None if input is None."""
+    return f"rotate({(deg + 180) % 360}deg)" if deg is not None else None
+
+
+ts_to_dt = TimeUtils.to_local_datetime
+
+
 # Define classes first
 class TemplateRenderer:
     """Handles Jinja2 template environment and rendering.
@@ -93,16 +102,11 @@ class TemplateRenderer:
                 "weather_icon": WeatherIcons.get_icon_filename,
                 "moon_phase_icon": WeatherIcons.get_moon_phase_icon,
                 "moon_phase_label": WeatherIcons.get_moon_phase_label,
-                "wind_rotation": self._wind_rotation,
-                "ts_to_dt": TimeUtils.to_local_datetime,
+                "wind_rotation": wind_rotation,
+                "ts_to_dt": ts_to_dt,
                 "strftime": TimeUtils.format_datetime,
             }
         )
-
-    @staticmethod
-    def _wind_rotation(deg: float, direction: str = "towards") -> float:
-        """Return adjusted wind bearing for 'from' or 'towards' arrow."""
-        return deg if direction == "towards" else (deg + 180) % 360
 
     def render_dashboard(self, **context: Any) -> str:
         """Render the dashboard template with the provided context.
@@ -297,3 +301,6 @@ class WkhtmlToPngRenderer(HtmlRenderer):
             cmd = ["xvfb-run", "-a"] + cmd
 
         subprocess.run(cmd, check=True)
+
+
+__all__ = ["ts_to_dt", "wind_rotation"]
