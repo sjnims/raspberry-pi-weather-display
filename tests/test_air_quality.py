@@ -1,4 +1,5 @@
 import pytest
+
 from rpiweather.weather.air_quality import AirQuality
 
 

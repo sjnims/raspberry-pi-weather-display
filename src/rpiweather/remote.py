@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Final, Protocol, runtime_checkable
 import urllib.parse
+from typing import Final, Protocol, runtime_checkable
 
 import requests
 from requests.exceptions import RequestException
 from typing_extensions import TypedDict
-
 
 logger: Final = logging.getLogger(__name__)
 
@@ -63,7 +62,7 @@ class HttpWakeStateProvider:
                 logger.debug("stay-awake: HTTP %s from %s", resp.status_code, self.url)
                 return False
 
-            data: AwakeResponse = resp.json()  # type: ignore[assignment]
+            data: AwakeResponse = resp.json()
             return bool(data.get("awake", False))
 
         except (ValueError, RequestException) as exc:  # JSON parse / network error

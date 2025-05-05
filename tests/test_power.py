@@ -3,21 +3,22 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict
 from pathlib import Path
+from typing import Any
 
 import pytest
+
 from rpiweather import power
-from rpiweather.power import PowerManager, PiJuiceWakeup, LinuxRTCWakeup
+from rpiweather.power import LinuxRTCWakeup, PiJuiceWakeup, PowerManager
 
 
 class _FakeSubprocess:
     """Capture arguments to subprocess.run."""
 
     def __init__(self) -> None:
-        self.called: Dict[str, Any] = {}
+        self.called: dict[str, Any] = {}
 
-    def run(self, cmd: list[str], **kwargs: Any) -> None:  # noqa: D401
+    def run(self, cmd: list[str], **kwargs: Any) -> None:
         self.called["cmd"] = cmd
         self.called["kwargs"] = kwargs
 
@@ -29,12 +30,12 @@ def test_graceful_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
     PowerManager().shutdown()
 
     assert fake.called["cmd"] == ["sudo", "shutdown", "-h", "now"]
-    assert fake.called["kwargs"]["check"] is True  # type: ignore[index]
+    assert fake.called["kwargs"]["check"] is True
 
 
 def test_schedule_wakeup_pijuice(monkeypatch: pytest.MonkeyPatch) -> None:
     # Create a mock PiJuiceWakeup
-    called: Dict[str, bool] = {}
+    called: dict[str, bool] = {}
 
     class MockPiJuiceWakeup(PiJuiceWakeup):
         def set_wakeup(self, wake_time: datetime) -> bool:

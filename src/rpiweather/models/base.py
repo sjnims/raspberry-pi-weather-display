@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
-from typing import Any, Callable, TypeVar, Type
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any, TypeVar
+
 from pydantic import BaseModel, field_validator
 
 # Define a more precise return type for your validator factory
-ValidatorCallable = Callable[[Type[Any], Any], Any]
+ValidatorCallable = Callable[[type[Any], Any], Any]
 
 T = TypeVar("T", bound="TimeStampModel")
 
@@ -25,7 +27,7 @@ class TimeStampModel(BaseModel):
         Returns:
             datetime: Timezone-aware datetime object in UTC
         """
-        return datetime.fromtimestamp(v, tz=timezone.utc)
+        return datetime.fromtimestamp(v, tz=UTC)
 
     @staticmethod
     def timestamp_validator(field_name: str) -> ValidatorCallable:
@@ -40,7 +42,7 @@ class TimeStampModel(BaseModel):
 
         # Define the validator function with proper type annotations
         @field_validator(field_name, mode="before")
-        def validate_timestamp(cls: Type[Any], v: Any) -> Any:
+        def validate_timestamp(cls: type[Any], v: Any) -> Any:
             if isinstance(v, int):
                 return TimeStampModel.convert_timestamp(v)
             return v

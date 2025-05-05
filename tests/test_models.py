@@ -7,14 +7,15 @@ These tests verify that:
 4. Timezone conversions work as expected
 """
 
-import pytest
-from typing import Any
-from pydantic import ValidationError
 from pathlib import Path
+from typing import Any
 
+import pytest
+from pydantic import ValidationError
+
+from rpiweather.settings import UserSettings
 from rpiweather.weather.api import WeatherAPI
 from rpiweather.weather.models import WeatherResponse
-from rpiweather.settings import UserSettings
 
 
 @pytest.fixture

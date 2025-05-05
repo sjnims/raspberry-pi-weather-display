@@ -1,12 +1,14 @@
-import pytest
-from pathlib import Path
 import os
+from pathlib import Path
+
+import pytest
 from PIL import Image
+
 from rpiweather.display.epaper import (
     IT8951Display,
     MockEpdDriver,
-    create_test_display,
     compare_display_image,
+    create_test_display,
 )
 from rpiweather.settings import RefreshMode
 

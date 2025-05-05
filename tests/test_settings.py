@@ -1,7 +1,9 @@
-import pytest
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from rpiweather.settings.user import UserSettings, QuietHours
+
+import pytest
+
+from rpiweather.settings.user import QuietHours, UserSettings
 
 
 def test_quiet_hours_validation_error() -> None:

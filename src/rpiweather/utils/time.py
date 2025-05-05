@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 
@@ -66,4 +66,4 @@ class TimeUtils:
         Returns:
             Current datetime with local timezone
         """
-        return datetime.now(timezone.utc).astimezone()
+        return datetime.now(UTC).astimezone()

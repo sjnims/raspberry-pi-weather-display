@@ -2,20 +2,19 @@
 
 from .pijuice import (
     BatteryStatusDict,
+    PiJuiceLike,
     PiJuiceStatusDict,
     RTCInterface,
     StatusInterface,
-    PiJuiceLike,
 )
-
-from .weather import WeatherObj, PrecipObj
+from .weather import PrecipObj, WeatherObj
 
 __all__ = [
     "BatteryStatusDict",
+    "PiJuiceLike",
     "PiJuiceStatusDict",
+    "PrecipObj",
     "RTCInterface",
     "StatusInterface",
-    "PiJuiceLike",
     "WeatherObj",
-    "PrecipObj",
 ]

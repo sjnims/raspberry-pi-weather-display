@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from rpiweather.types.weather import PrecipObj
 from rpiweather.weather.utils.units import UnitConverter
@@ -17,7 +18,7 @@ class PrecipitationUtils:
     """
 
     @staticmethod
-    def get_one_hour_amt(mapping: Optional[Mapping[str, Any]]) -> float:
+    def get_one_hour_amt(mapping: Mapping[str, Any] | None) -> float:
         """Extract 1-hour precipitation amount from data structure."""
         if mapping is None:
             return 0.0

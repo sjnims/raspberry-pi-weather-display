@@ -6,7 +6,7 @@ various error conditions when interacting with weather APIs.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class WeatherAPIError(Exception):
@@ -18,9 +18,7 @@ class WeatherAPIError(Exception):
     when available.
     """
 
-    def __init__(
-        self, code: int, message: str, response: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def __init__(self, code: int, message: str, response: dict[str, Any] | None = None) -> None:
         """Initialize the exception.
 
         Args:
@@ -31,7 +29,7 @@ class WeatherAPIError(Exception):
         super().__init__(f"[{code}] {message}")
         self.code: int = code
         self.message: str = message
-        self.response: Optional[Dict[str, Any]] = response
+        self.response: dict[str, Any] | None = response
 
     @property
     def is_client_error(self) -> bool:
@@ -52,9 +50,7 @@ class WeatherAPIError(Exception):
         return self.code >= 500
 
     @classmethod
-    def from_response(
-        cls, response: Dict[str, Any], status_code: int = 0
-    ) -> WeatherAPIError:
+    def from_response(cls, response: dict[str, Any], status_code: int = 0) -> WeatherAPIError:
         """Create an error from an API response.
 
         Args:
@@ -70,20 +66,12 @@ class WeatherAPIError(Exception):
                     status_code, response.get("message", "Authentication failed")
                 )
             elif status_code == 404:
-                return NotFoundError(
-                    status_code, response.get("message", "Resource not found")
-                )
+                return NotFoundError(status_code, response.get("message", "Resource not found"))
             elif status_code == 429:
-                return RateLimitError(
-                    status_code, response.get("message", "Rate limit exceeded")
-                )
-            return ClientError(
-                status_code, response.get("message", "Client error"), response
-            )
+                return RateLimitError(status_code, response.get("message", "Rate limit exceeded"))
+            return ClientError(status_code, response.get("message", "Client error"), response)
         elif status_code >= 500:
-            return ServerError(
-                status_code, response.get("message", "Server error"), response
-            )
+            return ServerError(status_code, response.get("message", "Server error"), response)
 
         # Default case
         return cls(status_code, response.get("message", "Unknown error"), response)
@@ -92,9 +80,7 @@ class WeatherAPIError(Exception):
 class NetworkError(WeatherAPIError):
     """Raised when a network issue prevents API communication."""
 
-    def __init__(
-        self, message: str, original_error: Optional[Exception] = None
-    ) -> None:
+    def __init__(self, message: str, original_error: Exception | None = None) -> None:
         """Initialize with network error details.
 
         Args:
@@ -108,39 +94,27 @@ class NetworkError(WeatherAPIError):
 class AuthenticationError(WeatherAPIError):
     """Raised when API authentication fails (invalid API key)."""
 
-    pass
-
 
 class NotFoundError(WeatherAPIError):
     """Raised when a requested resource doesn't exist."""
-
-    pass
 
 
 class RateLimitError(WeatherAPIError):
     """Raised when rate limits are exceeded."""
 
-    pass
-
 
 class ClientError(WeatherAPIError):
     """Raised for general 4xx client errors."""
-
-    pass
 
 
 class ServerError(WeatherAPIError):
     """Raised for 5xx server errors."""
 
-    pass
-
 
 class ParseError(WeatherAPIError):
     """Raised when API response parsing fails."""
 
-    def __init__(
-        self, message: str, original_error: Optional[Exception] = None
-    ) -> None:
+    def __init__(self, message: str, original_error: Exception | None = None) -> None:
         """Initialize with parsing error details.
 
         Args:

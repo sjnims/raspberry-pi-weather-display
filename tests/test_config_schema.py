@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytest
-from rpiweather.settings import UserSettings
 
+from rpiweather.settings import UserSettings
 
 GOOD_YAML = """
 lat: 45.0

@@ -1,17 +1,18 @@
 """Scheduler for the E-Ink Weather Display application."""
 
-import time
 import logging
+import time
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Optional, TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
-from rpiweather.settings import (
-    StayAwakeURL,
-    RefreshSettings,
-    RefreshMode,
-)
+from rpiweather.power import BatteryManager, PowerManager, QuietHoursHelper
 from rpiweather.remote import create_wake_state_provider
-from rpiweather.power import QuietHoursHelper, PowerManager, BatteryManager
+from rpiweather.settings import (
+    RefreshMode,
+    RefreshSettings,
+    StayAwakeURL,
+)
 from rpiweather.utils import TimeUtils
 
 if TYPE_CHECKING:
@@ -37,17 +38,15 @@ class Scheduler:
     def __init__(
         self,
         display: "WeatherDisplay",
-        stay_awake_url: Optional[str] = None,
-        shutdown_callback: Optional[Callable[[], None]] = None,
+        stay_awake_url: str | None = None,
+        shutdown_callback: Callable[[], None] | None = None,
     ) -> None:
         # Display controller and config
         self.display = display
         self.config = display.config
 
         # Resolve stay-awake URL: CLI override → config → default
-        self.stay_awake_url = (
-            stay_awake_url or self.config.stay_awake_url or StayAwakeURL.url
-        )
+        self.stay_awake_url = stay_awake_url or self.config.stay_awake_url or StayAwakeURL.url
         self.power_manager = None
         self.shutdown_callback = shutdown_callback
 
@@ -89,8 +88,7 @@ class Scheduler:
 
             # Determine if a full e-ink refresh is due
             full_refresh_needed = (
-                now - self.display.last_full_refresh
-                > RefreshSettings.full_refresh_interval
+                now - self.display.last_full_refresh > RefreshSettings.full_refresh_interval
             )
 
             # Fetch data and render

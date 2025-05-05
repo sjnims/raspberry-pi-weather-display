@@ -6,13 +6,12 @@ Only the fields used by the dashboard are modelled for now; add more as needed.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, ClassVar
+from typing import ClassVar
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from rpiweather.models.base import TimeStampModel
 from rpiweather.weather.air_quality import AirQuality
-
 
 # ─────────────────────────── primitives ──────────────────────────────────────
 
@@ -77,9 +76,9 @@ class Current(TimeStampModel):
     wind_deg: int
     uvi: float | None = None
     visibility: int | None = None
-    weather: List[WeatherCondition]
-    sunrise_local: Optional[str] = None
-    sunset_local: Optional[str] = None
+    weather: list[WeatherCondition]
+    sunrise_local: str | None = None
+    sunset_local: str | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -99,7 +98,7 @@ class Current(TimeStampModel):
         return self.sunrise <= now < self.sunset
 
     @property
-    def weather_main(self) -> Optional[WeatherCondition]:
+    def weather_main(self) -> WeatherCondition | None:
         """Get the primary weather condition.
 
         Returns:
@@ -126,14 +125,14 @@ class Hourly(TimeStampModel):
     wind_speed: float | None = None
     wind_deg: int | None = None
     uvi: float | None = None
-    weather: List[WeatherCondition]
-    local_time: Optional[str] = None
+    weather: list[WeatherCondition]
+    local_time: str | None = None
 
     # Use TimeStampModel validator factory method
     _validate_dt = TimeStampModel.timestamp_validator("dt")
 
     @property
-    def weather_main(self) -> Optional[WeatherCondition]:
+    def weather_main(self) -> WeatherCondition | None:
         """Get the primary weather condition.
 
         Returns:
@@ -185,10 +184,10 @@ class Daily(TimeStampModel):
     temp: DailyTemp
     uvi: float | None = None
     moon_phase: float | None = None
-    weather: List[WeatherCondition]
-    sunrise_local: Optional[str] = None
-    sunset_local: Optional[str] = None
-    weekday_short: Optional[str] = None
+    weather: list[WeatherCondition]
+    sunrise_local: str | None = None
+    sunset_local: str | None = None
+    weekday_short: str | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -208,7 +207,7 @@ class Daily(TimeStampModel):
         return delta.total_seconds() / 3600
 
     @property
-    def weather_main(self) -> Optional[WeatherCondition]:
+    def weather_main(self) -> WeatherCondition | None:
         """Get the primary weather condition.
 
         Returns:
@@ -251,7 +250,7 @@ class Daily(TimeStampModel):
             return "Waning Crescent"
 
 
-# ─────────────────────────── top‑level response ──────────────────────────────
+# ─────────────────────────── top-level response ──────────────────────────────
 
 
 class WeatherResponse(BaseModel):
@@ -267,9 +266,9 @@ class WeatherResponse(BaseModel):
     timezone: str
     timezone_offset: int
     current: Current
-    hourly: List[Hourly]
-    daily: List[Daily]
-    air_quality: Optional[AirQuality] = None
+    hourly: list[Hourly]
+    daily: list[Daily]
+    air_quality: AirQuality | None = None
 
     @property
     def location(self) -> Coord:
@@ -301,7 +300,7 @@ class WeatherResponse(BaseModel):
         max_temp = max(day.temp.max for day in self.daily)
         return (min_temp, max_temp)
 
-    def filter_hourly(self, hours: int = 24) -> List[Hourly]:
+    def filter_hourly(self, hours: int = 24) -> list[Hourly]:
         """Get a filtered list of hourly forecasts.
 
         Args:
@@ -313,6 +312,6 @@ class WeatherResponse(BaseModel):
         return self.hourly[:hours]
 
     @property
-    def current_weather(self) -> Optional[WeatherCondition]:
+    def current_weather(self) -> WeatherCondition | None:
         """Get the primary current weather condition."""
         return self.current.weather_main if self.current else None

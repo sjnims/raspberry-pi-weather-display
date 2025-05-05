@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import csv
-from typing import Any, Dict, Mapping
+from collections.abc import Mapping
+from typing import Any, ClassVar
+
 from rpiweather.types.weather import WeatherObj
 
 
@@ -16,7 +18,7 @@ class WeatherIcons:
     """
 
     # Class variable to store the icon mapping
-    _icon_map: Dict[str, str] = {}
+    _icon_map: ClassVar[dict[str, str]] = {}
 
     @classmethod
     def load_mapping(cls, path: str = "owm_icon_map.csv") -> None:
@@ -54,11 +56,7 @@ class WeatherIcons:
             owm_id = str(getattr(weather_item, "id", "")).strip()
             icon = str(getattr(weather_item, "icon", "")).strip()
 
-        key = (
-            f"{owm_id}{icon[-1]}"
-            if owm_id in {"800", "801", "802", "803", "804"}
-            else owm_id
-        )
+        key = f"{owm_id}{icon[-1]}" if owm_id in {"800", "801", "802", "803", "804"} else owm_id
         return cls._icon_map.get(key, "wi-na.svg")
 
     @staticmethod
@@ -142,6 +140,6 @@ class WeatherIcons:
             return labels[7]
 
     @classmethod
-    def get_icon_map(cls) -> Dict[str, str]:
+    def get_icon_map(cls) -> dict[str, str]:
         """Get the complete icon mapping dictionary."""
         return cls._icon_map

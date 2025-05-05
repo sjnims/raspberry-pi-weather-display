@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, ClassVar
+from typing import ClassVar
+
 from pydantic import BaseModel, Field
 
 
@@ -12,7 +13,7 @@ class AirQuality(BaseModel):
     """
 
     # AQI category labels and thresholds
-    AQI_CATEGORIES: ClassVar[Dict[int, str]] = {
+    AQI_CATEGORIES: ClassVar[dict[int, str]] = {
         1: "Good",
         2: "Fair",
         3: "Moderate",
@@ -21,7 +22,7 @@ class AirQuality(BaseModel):
     }
 
     # Color codes for AQI categories
-    AQI_COLORS: ClassVar[Dict[int, str]] = {
+    AQI_COLORS: ClassVar[dict[int, str]] = {
         1: "#4CAF50",  # Green
         2: "#8BC34A",  # Light Green
         3: "#FFC107",  # Amber
@@ -34,9 +35,7 @@ class AirQuality(BaseModel):
     aqi_value: int = Field(..., ge=1, le=5, description="Numeric AQI value (1-5)")
 
     # Optional component concentrations (μg/m³)
-    components: Optional[Dict[str, float]] = Field(
-        None, description="Air pollutant concentrations"
-    )
+    components: dict[str, float] | None = Field(None, description="Air pollutant concentrations")
 
     @property
     def color(self) -> str:
@@ -97,7 +96,7 @@ class AirQuality(BaseModel):
         return cls(
             aqi=category,
             aqi_value=value,
-            components=None,  # Add this line to fix the error
+            components=None,
         )
 
     @classmethod

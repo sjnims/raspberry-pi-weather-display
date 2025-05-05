@@ -1,11 +1,9 @@
-import pytest
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
-from datetime import datetime, timedelta
 
-from rpiweather.weather.models import WeatherResponse
-from rpiweather.system.status import SystemStatus
-from rpiweather.settings.user import UserSettings
+import pytest
+
 from rpiweather.display.render import (
     DashboardContextBuilder,
     TemplateRenderer,
@@ -13,6 +11,9 @@ from rpiweather.display.render import (
     ts_to_dt,
     wind_rotation,
 )
+from rpiweather.settings.user import UserSettings
+from rpiweather.system.status import SystemStatus
+from rpiweather.weather.models import WeatherResponse
 
 
 @pytest.fixture

@@ -2,24 +2,26 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta, date
-from typing import Final, Any, Dict, Callable, cast
-from functools import partial
 import json
 import logging
+from collections.abc import Callable
+from datetime import UTC, date, datetime, timedelta
+from functools import partial
+from typing import Any, Final, cast
 
 import requests
-from .models import WeatherResponse
-from .errors import WeatherAPIError, NetworkError
-from .utils import (
-    UnitConverter,
-    WeatherIcons,
-    PrecipitationUtils,
-)
 
 from rpiweather.settings import UserSettings
-from rpiweather.weather.models import Daily
 from rpiweather.utils import TimeUtils
+from rpiweather.weather.models import Daily
+
+from .errors import NetworkError, WeatherAPIError
+from .models import WeatherResponse
+from .utils import (
+    PrecipitationUtils,
+    UnitConverter,
+    WeatherIcons,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 API_URL: Final = "https://api.openweathermap.org/data/3.0/onecall"
 AQI_URL: Final = "https://api.openweathermap.org/data/2.5/air_pollution"
 
-# Human‑readable explanations for common HTTP errors
+# Human-readable explanations for common HTTP errors
 HTTP_ERROR_MAP: Final = {
     400: "Bad request - check lat/lon or parameters",
     401: "Invalid or missing API key",
@@ -105,7 +107,7 @@ class WeatherAPI:
         weather_json = resp.text  # store text for single parse
 
         # Merge AQI data into the raw dict before validation
-        merged_raw: Dict[str, Any] = json.loads(weather_json)
+        merged_raw: dict[str, Any] = json.loads(weather_json)
         try:
             aqi_raw = self.fetch_air_quality()
             merged_raw["air_quality"] = {
@@ -174,7 +176,7 @@ class WeatherAPI:
         Returns:
             Dictionary with processed values ready for template rendering
         """
-        now = datetime.now(timezone.utc).astimezone()
+        now = datetime.now(UTC).astimezone()
         today = now.date()
         cfg = self.config
 
@@ -182,9 +184,7 @@ class WeatherAPI:
         sunrise_dt = weather.current.sunrise.astimezone()
         sunset_dt = weather.current.sunset.astimezone()
 
-        daylight_seconds = int(
-            (weather.current.sunset - weather.current.sunrise).total_seconds()
-        )
+        daylight_seconds = int((weather.current.sunset - weather.current.sunrise).total_seconds())
         daylight_hours, remainder = divmod(daylight_seconds, 3600)
         daylight_minutes = remainder // 60
 
@@ -230,9 +230,7 @@ class WeatherAPI:
             # wind / Beaufort
             "bft": UnitConverter.beaufort_from_speed(speed),
             # forecast slices
-            "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][
-                : cfg.hourly_count
-            ],
+            "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][: cfg.hourly_count],
             "daily": future_daily,
             # helper filters
             "deg_to_cardinal": UnitConverter.deg_to_cardinal,
@@ -241,18 +239,14 @@ class WeatherAPI:
             # bind metric/imperial choice once so templates stay simple
             "hourly_precip": cast(
                 Callable[[Any], str],
-                partial(
-                    PrecipitationUtils.hourly_precip, imperial=(cfg.units == "imperial")
-                ),
+                partial(PrecipitationUtils.hourly_precip, imperial=(cfg.units == "imperial")),
             ),
             "moon_phase_icon": WeatherIcons.get_moon_phase_icon,
             "moon_phase_label": WeatherIcons.get_moon_phase_label,
         }
 
     # Private helper methods
-    def _calculate_uvi_data(
-        self, weather: WeatherResponse, today: date
-    ) -> list[tuple[int, float]]:
+    def _calculate_uvi_data(self, weather: WeatherResponse, today: date) -> list[tuple[int, float]]:
         """Calculate UV index data points for the day."""
         uvi_data: list[tuple[int, float]] = [
             # include current observation first
@@ -280,9 +274,7 @@ class WeatherAPI:
 
         return max_uvi_value, max_uvi_time
 
-    def _process_wind_data(
-        self, weather: WeatherResponse, cfg: UserSettings
-    ) -> tuple[float, int]:
+    def _process_wind_data(self, weather: WeatherResponse, cfg: UserSettings) -> tuple[float, int]:
         """Process wind speed and direction data."""
         speed = weather.current.wind_speed or 0.0
         if cfg.units != "imperial":
@@ -296,7 +288,7 @@ class WeatherAPI:
 
     def _get_future_daily(
         self, weather: WeatherResponse, now: datetime, cfg: UserSettings
-    ) -> list[Daily]:  # Add this return type
+    ) -> list[Daily]:
         """Get daily forecasts starting from tomorrow.
 
         Args:
@@ -307,17 +299,15 @@ class WeatherAPI:
         Returns:
             List of daily forecast objects for future days
         """
-        loc_tz = now.tzinfo or timezone.utc
+        loc_tz = now.tzinfo or UTC
         today_local = now.date()
         tomorrow_local = today_local + timedelta(days=1)
 
-        return [
-            d for d in weather.daily if d.dt.astimezone(loc_tz).date() >= tomorrow_local
-        ][: cfg.daily_count]
+        return [d for d in weather.daily if d.dt.astimezone(loc_tz).date() >= tomorrow_local][
+            : cfg.daily_count
+        ]
 
-    def _precompute_display_strings(
-        self, weather: WeatherResponse, cfg: UserSettings
-    ) -> None:
+    def _precompute_display_strings(self, weather: WeatherResponse, cfg: UserSettings) -> None:
         """Precompute display strings for hourly and daily forecasts."""
         # Precompute local_time strings for each hourly forecast object
         for h in weather.hourly:

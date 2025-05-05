@@ -1,6 +1,7 @@
 from typing import Any
-from rpiweather.types.pijuice import PiJuiceLike, StatusInterface, RTCInterface
+
 from rpiweather.system.utils.battery import BatteryUtils
+from rpiweather.types.pijuice import PiJuiceLike, RTCInterface, StatusInterface
 
 
 class FakeRTC(RTCInterface):

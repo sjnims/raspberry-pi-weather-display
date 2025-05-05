@@ -6,14 +6,13 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar, Literal, Optional
-
-from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+from typing import ClassVar, Literal
 from zoneinfo import ZoneInfo
 
-# Load environment variables from .env file(s)
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
+# Load environment variables from .env file(s)
 load_dotenv()
 
 
@@ -27,18 +26,16 @@ class QuietHours(BaseModel):
     Hours are integers from 0 to 23 inclusive.
     """
 
-    start: int = Field(
-        ..., ge=0, le=23, description="Hour of day to begin sleeping (0-23)"
-    )
+    start: int = Field(..., ge=0, le=23, description="Hour of day to begin sleeping (0-23)")
     end: int = Field(..., ge=0, le=23, description="Hour of day to end sleeping (0-23)")
 
     @model_validator(mode="after")
-    def check_start_not_equal_end(self) -> "QuietHours":
+    def check_start_not_equal_end(self) -> QuietHours:
         if self.start == self.end:
             raise ValueError("quiet_hours start and end cannot be the same")
         return self
 
-    def is_quiet_time(self, current_time: Optional[datetime] = None) -> bool:
+    def is_quiet_time(self, current_time: datetime | None = None) -> bool:
         """Check if the current or specified time is within quiet hours.
 
         Args:
@@ -81,19 +78,11 @@ class UserSettings(BaseModel):
     city: str = Field(..., description="Display name of location")
 
     # Display settings
-    refresh_minutes: int = Field(
-        120, gt=0, description="Base refresh interval (minutes)"
-    )
-    hourly_count: int = Field(
-        8, ge=1, le=24, description="Hours to show in forecast slice"
-    )
-    daily_count: int = Field(
-        5, ge=1, le=7, description="Days to show in forecast slice"
-    )
+    refresh_minutes: int = Field(120, gt=0, description="Base refresh interval (minutes)")
+    hourly_count: int = Field(8, ge=1, le=24, description="Hours to show in forecast slice")
+    daily_count: int = Field(5, ge=1, le=7, description="Days to show in forecast slice")
     display_width: int = Field(1872, gt=0, description="Width of the display in pixels")
-    display_height: int = Field(
-        1404, gt=0, description="Height of the display in pixels"
-    )
+    display_height: int = Field(1404, gt=0, description="Height of the display in pixels")
     vcom_volts: float = Field(
         -1.45,
         ge=-2.0,
@@ -106,8 +95,7 @@ class UserSettings(BaseModel):
         8,
         ge=0,
         le=100,
-        description="Battery % threshold below which the Pi shuts down "
-        "instead of sleeping",
+        description="Battery % threshold below which the Pi shuts down instead of sleeping",
     )
 
     # Time formatting
@@ -121,13 +109,11 @@ class UserSettings(BaseModel):
     time_format_full_date: str = Field(
         "%A, %B %-d", description="Full date format (e.g. Monday, January 3)"
     )
-    timezone: str = Field(
-        "America/New_York", description="Local timezone for display formatting"
-    )
+    timezone: str = Field("America/New_York", description="Local timezone for display formatting")
 
     # Schedule settings
-    quiet_hours: Optional[QuietHours] = None
-    stay_awake_url: Optional[str] = Field(
+    quiet_hours: QuietHours | None = None
+    stay_awake_url: str | None = Field(
         None,
         description="Override URL that returns {'awake': true|false}; "
         "if null, CLI option or default is used",
@@ -136,9 +122,7 @@ class UserSettings(BaseModel):
     # ---- validators ----
     @field_validator("quiet_hours")
     @classmethod
-    def validate_quiet(
-        cls, v: Optional[QuietHours]
-    ) -> Optional[QuietHours]:  # noqa: D401
+    def validate_quiet(cls, v: QuietHours | None) -> QuietHours | None:
         return v
 
     # ---- convenience methods ----
@@ -150,7 +134,7 @@ class UserSettings(BaseModel):
         """
         return ZoneInfo(self.timezone)
 
-    def is_quiet_time(self, current_time: Optional[datetime] = None) -> bool:
+    def is_quiet_time(self, current_time: datetime | None = None) -> bool:
         """Check if the current or specified time is within quiet hours.
 
         Args:
@@ -202,7 +186,7 @@ class UserSettings(BaseModel):
         return self.units == "imperial"
 
     @classmethod
-    def load(cls, path: Optional[Path] = None) -> UserSettings:
+    def load(cls, path: Path | None = None) -> UserSettings:
         """Load configuration from a YAML file.
 
         Args:
@@ -222,9 +206,7 @@ class UserSettings(BaseModel):
             if env_path:
                 path = Path(env_path)
                 if not path.exists():
-                    raise FileNotFoundError(
-                        f"Config file from RPIWEATHER_CONFIG not found: {path}"
-                    )
+                    raise FileNotFoundError(f"Config file from RPIWEATHER_CONFIG not found: {path}")
             else:
                 # Try default paths
                 for default_path in cls.DEFAULT_CONFIG_PATHS:

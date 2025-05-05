@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
-from rpiweather.remote import create_wake_state_provider
 import requests
+
+from rpiweather.remote import create_wake_state_provider
 
 
 class _MockResponse:
@@ -15,8 +16,8 @@ class _MockResponse:
     def __init__(
         self,
         status_code: int,
-        payload: Dict[str, Any] | None = None,
-        *,  # keyword‑only
+        payload: dict[str, Any] | None = None,
+        *,  # keyword-only
         bad_json: bool = False,
     ) -> None:
         self.status_code = status_code
@@ -24,7 +25,7 @@ class _MockResponse:
         self._bad_json = bad_json
 
     # requests.Response.json()
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         if self._bad_json:
             raise ValueError("Invalid JSON")
         return self._payload
@@ -72,7 +73,7 @@ def test_fail_closed(
 
 
 def test_network_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    def mock_get(*_a: Any, **_kw: Any) -> None:  # noqa: D401
+    def mock_get(*_a: Any, **_kw: Any) -> None:
         raise requests.exceptions.Timeout("network down")
 
     monkeypatch.setattr("rpiweather.remote.requests.get", mock_get, raising=True)

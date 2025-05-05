@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 import subprocess
-from datetime import datetime, timedelta, timezone
-from typing import Any, Final, Protocol, Optional, runtime_checkable, cast
+from datetime import UTC, datetime, timedelta
+from typing import Any, Final, Protocol, cast, runtime_checkable
 
 from rpiweather.settings import QuietHours, UserSettings
 
@@ -41,13 +41,13 @@ class PiJuiceWakeup:
             True if successful, False otherwise
         """
         try:
-            import pijuice  # type: ignore[import-not-found]
+            import pijuice  # type: ignore[import]
 
-            pj = pijuice.PiJuice(1, 0x14)  # type: ignore[call-arg]
+            pj = pijuice.PiJuice(1, 0x14)
             wake_secs = self._datetime_to_epoch(wake_time)
-            resp = pj.rtc.SetWakeup(wake_secs)  # type: ignore[attr-defined]
+            resp = pj.rtc.SetWakeup(wake_secs)
 
-            if resp.get("error") == "NO_ERROR":  # type: ignore[attr-defined]
+            if resp.get("error") == "NO_ERROR":
                 logger.info("PiJuice wake-up set for %s", wake_time.isoformat())
                 return True
 
@@ -68,7 +68,7 @@ class PiJuiceWakeup:
             Epoch seconds as integer
         """
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return int(dt.timestamp())
 
 
@@ -115,14 +115,14 @@ class LinuxRTCWakeup:
             Epoch seconds as integer
         """
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return int(dt.timestamp())
 
 
 class PowerManager:
     """Manages system power operations."""
 
-    def __init__(self, wakeup_providers: Optional[list[WakeupProvider]] = None) -> None:
+    def __init__(self, wakeup_providers: list[WakeupProvider] | None = None) -> None:
         """Initialize with wake-up providers.
 
         Args:
@@ -213,7 +213,7 @@ class BatteryManager:
             return True
 
         # Quiet hours override
-        if self.config.quiet_hours and QuietHoursHelper(
+        if self.config.quiet_hours and QuietHoursHelper(  # noqa: SIM103
             self.config.quiet_hours
         ).is_quiet(now):
             return True
@@ -225,7 +225,7 @@ class QuietHoursManager:
     """Manages quiet hours timing calculations."""
 
     @staticmethod
-    def seconds_until_quiet_end(ts: datetime, quiet: Optional[QuietHours]) -> int:
+    def seconds_until_quiet_end(ts: datetime, quiet: QuietHours | None) -> int:
         """Calculate seconds until quiet hours end."""
         if not quiet:
             return 0
@@ -244,13 +244,8 @@ class QuietHoursManager:
             if not (current_hour >= start or current_hour < end):
                 return 0
             # if before midnight segment
-            if current_hour >= start:
-                base = ts
-            else:
-                base = ts - timedelta(days=1)
-            end_dt = base.replace(
-                hour=end, minute=0, second=0, microsecond=0
-            ) + timedelta(days=1)
+            base = ts if current_hour >= start else ts - timedelta(days=1)
+            end_dt = base.replace(hour=end, minute=0, second=0, microsecond=0) + timedelta(days=1)
 
         return int((end_dt - ts).total_seconds())
 
@@ -258,7 +253,7 @@ class QuietHoursManager:
 class QuietHoursHelper:
     """Encapsulates quiet hours configuration and operations."""
 
-    def __init__(self, quiet: Optional[QuietHours]) -> None:
+    def __init__(self, quiet: QuietHours | None) -> None:
         self._quiet = quiet
 
     def is_quiet(self, ts: datetime) -> bool:

@@ -1,8 +1,9 @@
-import pytest
 from datetime import datetime
+
+import pytest
+
 from rpiweather.power import BatteryManager
-from rpiweather.settings.user import UserSettings
-from rpiweather.settings.user import QuietHours
+from rpiweather.settings.user import QuietHours, UserSettings
 
 
 @pytest.mark.parametrize(

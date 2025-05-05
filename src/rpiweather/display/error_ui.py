@@ -2,14 +2,14 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Protocol
+from typing import Any, Protocol
 
 from jinja2 import Template
 
-from rpiweather.display.protocols import DisplayDriver
-from rpiweather.system.status import SystemStatus
 from rpiweather.display.epaper import IT8951Display
+from rpiweather.display.protocols import DisplayDriver
 from rpiweather.settings import RefreshMode
+from rpiweather.system.status import SystemStatus
 
 
 class HtmlRenderer(Protocol):
@@ -93,7 +93,7 @@ class ErrorRenderer:
         self,
         html_renderer: HtmlRenderer,
         display_driver: DisplayDriver | None = None,
-        template: Optional[str] = None,
+        template: str | None = None,
     ) -> None:
         """Initialize the error renderer.
 
@@ -131,13 +131,10 @@ class ErrorRenderer:
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        # Add type annotation or use type: ignore
-        from typing import Any, Dict
-
-        typed_context: Dict[str, Any] = context
+        typed_context: dict[str, Any] = context
 
         # Render template to HTML
-        html_content = template.render(**typed_context)  # type: ignore
+        html_content = template.render(**typed_context)
 
         # Convert to image
         self.html_renderer.render_to_image(html_content, output_path)

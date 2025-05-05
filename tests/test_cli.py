@@ -1,16 +1,15 @@
+from collections.abc import Generator
 from datetime import datetime
-from typer.testing import CliRunner
 from pathlib import Path
-import pytest
 from unittest.mock import MagicMock, patch
 
-from rpiweather.cli import WeatherDisplay, TEST_CONFIG_YAML
+import pytest
+from typer.testing import CliRunner
+
+from rpiweather.cli import TEST_CONFIG_YAML, WeatherDisplay
 from rpiweather.display.protocols import MockDisplay
 from rpiweather.settings import RefreshMode
 from rpiweather.weather import WeatherAPIError
-
-# Add this to the top of tests/test_cli.py
-from typing import Generator
 
 
 # Create a mock app for testing
@@ -22,9 +21,7 @@ def mock_typer_app() -> Generator[MagicMock, None, None]:
         mock_command = MagicMock()
         mock_app.command.return_value = mock_command
         # Create a mock for any command invocations
-        mock_app.invoke = MagicMock(
-            return_value=MagicMock(exit_code=0, output="Mocked output")
-        )
+        mock_app.invoke = MagicMock(return_value=MagicMock(exit_code=0, output="Mocked output"))
         yield mock_app
 
 
@@ -71,10 +68,8 @@ def create_mock_weather_data():
             "visibility": 10000,
             "wind_speed": 5.2,
             "wind_deg": 180,
-            "moon_phase": 0.5,  # Add missing moon_phase
-            "weather": [
-                {"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}
-            ],
+            "moon_phase": 0.5,
+            "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
         },
         "hourly": [
             {
@@ -152,7 +147,7 @@ def test_weather_config_validate(mock_typer_app: MagicMock):
         validate_config(config_path)
         assert True
     except Exception as e:
-        assert False, f"Validation should pass but got: {e}"
+        raise AssertionError(f"Validation should pass but got: {e}") from e
 
 
 def test_weather_preview_command(tmp_path: Path):
@@ -168,19 +163,20 @@ def test_weather_preview_command(tmp_path: Path):
     )
 
     # Mock the template rendering to return a string
-    with patch.object(
-        display.template_renderer.dashboard_template,
-        "render",
-        return_value="<html>Mocked HTML</html>",  # Return a string value
-    ) as mock_render:
-        # Mock renderer to prevent actual image rendering
-        with patch.object(display.png_renderer, "render_to_image"):
-            # Test the method directly
-            result = display.fetch_and_render(preview=True, once=True)
-            assert result is True
+    with (
+        patch.object(
+            display.template_renderer.dashboard_template,
+            "render",
+            return_value="<html>Mocked HTML</html>",  # Return a string value
+        ) as mock_render,
+        patch.object(display.png_renderer, "render_to_image"),
+    ):
+        # Test the method directly
+        result = display.fetch_and_render(preview=True, once=True)
+        assert result is True
 
-            # Verify template was called
-            mock_render.assert_called_once()
+        # Verify template was called
+        mock_render.assert_called_once()
 
 
 def test_weather_config_wizard(tmp_path: Path, mock_typer_app: MagicMock) -> None:
@@ -240,9 +236,7 @@ def test_weather_api_error_handling(monkeypatch: pytest.MonkeyPatch):
     display.weather_api = mock_api
 
     # Patch error renderer to prevent actual rendering
-    monkeypatch.setattr(
-        "rpiweather.display.error_ui.ErrorRenderer.render_error", MagicMock()
-    )
+    monkeypatch.setattr("rpiweather.display.error_ui.ErrorRenderer.render_error", MagicMock())
 
     # Run fetch_and_render which should fail
     result = display.fetch_and_render()
@@ -372,9 +366,7 @@ def test_preview_with_mocks(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     mock_current.sunrise_local = "7:00 AM"
     mock_current.sunset_local = "7:00 PM"
     mock_current.moon_phase = 0.5
-    mock_current.weather = [
-        {"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}
-    ]
+    mock_current.weather = [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}]
     mock_current.humidity = 65
     mock_current.pressure = 1015
     mock_current.uvi = 6.5

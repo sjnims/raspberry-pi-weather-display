@@ -1,4 +1,5 @@
 import pytest
+
 from rpiweather.settings.user import UserSettings
 from rpiweather.weather.api import WeatherAPI
 from rpiweather.weather.models import WeatherResponse

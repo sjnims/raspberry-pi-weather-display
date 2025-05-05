@@ -1,8 +1,11 @@
-import pytest
-from typing import Any, Mapping
-from rpiweather.weather.utils.precipitation import PrecipitationUtils
-from rpiweather.types.weather import PrecipObj
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import Mock
+
+import pytest
+
+from rpiweather.types.weather import PrecipObj
+from rpiweather.weather.utils.precipitation import PrecipitationUtils
 
 
 @pytest.mark.parametrize(
@@ -21,9 +24,7 @@ from unittest.mock import Mock
         ({"1h": {}}, 0.0),  # Invalid type (dict)
     ],
 )
-def test_get_one_hour_amt(
-    input_data: Mapping[str, Any] | None, expected: float
-) -> None:
+def test_get_one_hour_amt(input_data: Mapping[str, Any] | None, expected: float) -> None:
     assert PrecipitationUtils.get_one_hour_amt(input_data) == expected
 
 

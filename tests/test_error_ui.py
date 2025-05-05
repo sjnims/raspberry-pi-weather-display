@@ -1,9 +1,11 @@
-import pytest
 from pathlib import Path
-from rpiweather.display.error_ui import ErrorRenderer
-from rpiweather.system.status import SystemStatus
 from unittest.mock import Mock
+
+import pytest
+
+from rpiweather.display.error_ui import ErrorRenderer
 from rpiweather.display.protocols import RefreshMode
+from rpiweather.system.status import SystemStatus
 
 
 @pytest.fixture

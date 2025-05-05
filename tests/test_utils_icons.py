@@ -1,5 +1,8 @@
+from dataclasses import dataclass
+
 import pytest
 from pytest import MonkeyPatch
+
 from rpiweather.weather.utils.icons import WeatherIcons
 
 
@@ -20,13 +23,10 @@ def test_get_icon_filename_with_mapping(
         {"800d": "wi-day-sunny.svg", "802n": "wi-night-alt-cloudy.svg"},
     )
 
+    @dataclass
     class FakeWeather:
         id: int | str
         icon: str
-
-        def __init__(self, id: int | str, icon: str) -> None:
-            self.id = id
-            self.icon = icon
 
     obj = FakeWeather(id=int(icon_id[:3]), icon=icon_id[3:])
     result = WeatherIcons.get_icon_filename(obj)

@@ -1,13 +1,14 @@
 import pytest
+
 from rpiweather.weather.errors import (
-    WeatherAPIError,
-    NetworkError,
     AuthenticationError,
-    NotFoundError,
-    RateLimitError,
     ClientError,
-    ServerError,
+    NetworkError,
+    NotFoundError,
     ParseError,
+    RateLimitError,
+    ServerError,
+    WeatherAPIError,
 )
 
 

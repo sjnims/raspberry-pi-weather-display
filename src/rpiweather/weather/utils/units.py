@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 
 class UnitConverter:
     """Weather unit conversion utilities.
@@ -18,7 +20,7 @@ class UnitConverter:
     """
 
     # Wind direction constants
-    DIRECTIONS = [
+    DIRECTIONS: ClassVar[list[str]] = [
         "N",
         "NNE",
         "NE",
@@ -38,7 +40,7 @@ class UnitConverter:
     ]
 
     # Beaufort scale thresholds (mph)
-    BEAUFORT_LIMITS = [1, 4, 7, 12, 18, 24, 31, 38, 46, 54, 63, 73]
+    BEAUFORT_LIMITS: ClassVar[list[int]] = [1, 4, 7, 12, 18, 24, 31, 38, 46, 54, 63, 73]
 
     @staticmethod
     def mm_to_inches(mm: float) -> float:

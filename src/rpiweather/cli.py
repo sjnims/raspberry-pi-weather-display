@@ -7,43 +7,40 @@ power management, and configuration utilities.
 
 from __future__ import annotations
 
-# ── standard library ─────────────────────────────────────────────────────────
 import logging
 import subprocess
 import sys
 import tempfile
 import webbrowser
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
+from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
-# ── third‑party ──────────────────────────────────────────────────────────────
 import typer
 import yaml
 from pydantic import ValidationError
-from unittest.mock import MagicMock
 
-# ── rpiweather packages ──────────────────────────────────────────────────────
-from rpiweather.settings import UserSettings, ApplicationSettings, RefreshMode
 from rpiweather.display.epaper import IT8951Display
-from rpiweather.display.protocols import DisplayDriver, MockDisplay
 from rpiweather.display.error_ui import ErrorRenderer
+from rpiweather.display.protocols import DisplayDriver, MockDisplay
 from rpiweather.display.render import (
     DashboardContextBuilder,
     TemplateRenderer,
     WkhtmlToPngRenderer,
 )
+from rpiweather.scheduler import Scheduler
+from rpiweather.settings import ApplicationSettings, RefreshMode, UserSettings
 from rpiweather.system.status import SystemStatus
 from rpiweather.types.pijuice import PiJuiceLike
 from rpiweather.utils import TimeUtils
 from rpiweather.weather import (
+    BatteryUtils,
     WeatherAPI,
     WeatherAPIError,
     WeatherIcons,
     WeatherResponse,
-    BatteryUtils,
 )
-from rpiweather.scheduler import Scheduler
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
 app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)
@@ -70,6 +67,17 @@ refresh_minutes: 120
 vcom_volts: -1.45
 """
 
+# Options for the main command
+CONFIG_OPTION = typer.Option(..., "--config", "-c", exists=True, dir_okay=False)
+DEBUG_OPTION = typer.Option(False, "--debug", help="Enable debug logging")
+DST_ARGUMENT = typer.Argument(..., help="Output config.yaml")
+PREVIEW_OPTION = typer.Option(False, "--preview", "-p", help="Generate preview only")
+ONCE_OPTION = typer.Option(False, "--once", "-1", help="Run one cycle then exit")
+SERVE_OPTION = typer.Option(
+    False, "--serve", "-s", help="Start a simple HTTP server to serve the preview directory"
+)
+STAY_AWAKE_URL_OPTION = typer.Option(None, help="Override URL that returns {'awake': true|false}")
+
 
 class WeatherDisplay:
     """Main controller class for the weather display application.
@@ -86,17 +94,17 @@ class WeatherDisplay:
     the central coordination point for the application.
     """
 
-    pijuice: Optional[PiJuiceLike]  # Add this explicit field type
+    pijuice: PiJuiceLike | None
 
     def __init__(
         self,
         config_path: Path,
-        display_driver: Optional[DisplayDriver] = None,
-        weather_api: Optional[WeatherAPI] = None,
-        pijuice: Optional[PiJuiceLike] = None,
-        template_renderer: Optional[TemplateRenderer] = None,
-        context_builder: Optional[DashboardContextBuilder] = None,
-        png_renderer: Optional[WkhtmlToPngRenderer] = None,
+        display_driver: DisplayDriver | None = None,
+        weather_api: WeatherAPI | None = None,
+        pijuice: PiJuiceLike | None = None,
+        template_renderer: TemplateRenderer | None = None,
+        context_builder: DashboardContextBuilder | None = None,
+        png_renderer: WkhtmlToPngRenderer | None = None,
         debug: bool = False,
     ):
         """Initialize the weather display controller.
@@ -140,15 +148,13 @@ class WeatherDisplay:
         # Load weather icon mapping
         WeatherIcons.load_mapping()
 
-    def _initialize_pijuice(self) -> Optional["PiJuiceLike"]:
+    def _initialize_pijuice(self) -> PiJuiceLike | None:
         """Initialize PiJuice hardware interface if available."""
         try:
-            import pijuice  # type: ignore[import-not-found]
+            # Attempt to import PiJuice library
+            import pijuice  # type: ignore
 
-            # Add a cast to help the type checker
-            from typing import cast
-
-            pj = cast(PiJuiceLike, pijuice.PiJuice(1, 0x14))  # type: ignore[call-arg]
+            pj = cast(PiJuiceLike, pijuice.PiJuice(1, 0x14))
 
             self._ensure_rtc_synced(pj)
             return pj
@@ -159,9 +165,9 @@ class WeatherDisplay:
     def _ensure_rtc_synced(self, pijuice: PiJuiceLike) -> None:
         """Ensure the PiJuice RTC is synchronized with system time."""
         try:
-            rtc_time = pijuice.rtc.GetTime()["data"]  # type: ignore[attr-defined]
+            rtc_time = pijuice.rtc.GetTime()["data"]
             if rtc_time["year"] < 2024:
-                pijuice.rtc.SetTime()  # type: ignore[attr-defined]
+                pijuice.rtc.SetTime()
                 logger.info("RTC set from system clock")
         except Exception as exc:
             logger.debug("RTC sync skipped: %s", exc)
@@ -178,7 +184,7 @@ class WeatherDisplay:
 
         if self.pijuice:
             try:
-                soc = self.pijuice.status.GetChargeLevel()["data"]  # type: ignore
+                soc = self.pijuice.status.GetChargeLevel()["data"]
                 batt = BatteryUtils.get_battery_status(self.pijuice)
                 is_charging = batt["is_charging"]
                 battery_warning = batt.get("battery_warning", False)
@@ -201,14 +207,7 @@ class WeatherDisplay:
         )
 
     def _fetch_weather_data(self) -> WeatherResponse:
-        """Fetch weather data from API and prepare timestamps.
-
-        Returns:
-            WeatherResponse object with processed weather data
-
-        Raises:
-            WeatherAPIError: If weather data fetch fails
-        """
+        """Fetch the current weather data."""
         weather = self.weather_api.fetch_weather()
         self._prepare_localized_timestamps(weather)
         return weather
@@ -252,7 +251,7 @@ class WeatherDisplay:
             return False
 
         # Render dashboard
-        return self._render_dashboard(
+        return self.render_dashboard(
             weather,
             preview,
             mode,
@@ -276,40 +275,35 @@ class WeatherDisplay:
             d.sunset_local = d.sunset.astimezone(local_tz).strftime(time_fmt)
 
         # Add localized sunrise/sunset times to current forecast
-        weather.current.sunrise_local = weather.current.sunrise.astimezone(
-            local_tz
-        ).strftime(time_fmt)
-        weather.current.sunset_local = weather.current.sunset.astimezone(
-            local_tz
-        ).strftime(time_fmt)
+        weather.current.sunrise_local = weather.current.sunrise.astimezone(local_tz).strftime(
+            time_fmt
+        )
+        weather.current.sunset_local = weather.current.sunset.astimezone(local_tz).strftime(
+            time_fmt
+        )
 
-    def _render_dashboard(
+    def render_dashboard(
         self,
         weather: WeatherResponse,
-        preview: bool,
-        mode: RefreshMode,
-        status: SystemStatus,
-        serve: bool,
-        once: bool,
+        preview: bool = PREVIEW_OPTION,
+        mode: RefreshMode = RefreshMode.GREYSCALE,
+        status: SystemStatus | None = None,
+        serve: bool = SERVE_OPTION,
+        once: bool = ONCE_OPTION,
     ) -> bool:
-        """Render the dashboard HTML/PNG and update display.
+        """Render the dashboard HTML/PNG and update display."""
+        # Ensure we have a valid SystemStatus object
+        system_status = status or SystemStatus(
+            soc=100,  # Default to 100% if no battery info
+            is_charging=False,
+            battery_warning=False,
+        )
 
-        Args:
-            weather: Weather data to display
-            preview: Generate preview HTML only
-            mode: RefreshMode to use
-            status: System status (battery, etc.)
-            serve: Serve preview on HTTP server
-            once: Exit after one cycle
-
-        Returns:
-            True if rendering was successful
-        """
         # Build template context using OO approach
-        ctx = self.context_builder.build_dashboard_context(weather, status)
+        ctx = self.context_builder.build_dashboard_context(weather, system_status)
 
         # Render HTML template using OO approach
-        html = self.template_renderer.dashboard_template.render(**ctx)  # type: ignore[reportUnknownMemberType]
+        html = self.template_renderer.dashboard_template.render(**ctx)
         out_dir = self.settings.paths.preview_dir
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -338,7 +332,7 @@ class WeatherDisplay:
 
         try:
             webbrowser.open_new_tab(url)
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:
             logger.debug("Could not open browser: %s", exc)
 
         subprocess.call(
@@ -352,9 +346,7 @@ class WeatherDisplay:
             ]
         )
 
-    def _render_error_screen(
-        self, error: WeatherAPIError, soc: int, is_charging: bool
-    ) -> None:
+    def _render_error_screen(self, error: WeatherAPIError, soc: int, is_charging: bool) -> None:
         """Render error screen on display.
 
         Args:
@@ -380,11 +372,11 @@ class WeatherDisplay:
     @classmethod
     def create_for_testing(
         cls,
-        config_path: Optional[Path] = None,
-        mock_weather_data: Optional[dict[str, Any]] = None,
+        config_path: Path | None = None,
+        mock_weather_data: dict[str, Any] | None = None,
         mock_battery_status: tuple[int, bool, bool] = (100, False, False),
-        mock_display_driver: Optional[DisplayDriver] = None,
-    ) -> "WeatherDisplay":
+        mock_display_driver: DisplayDriver | None = None,
+    ) -> WeatherDisplay:
         """Create WeatherDisplay instance configured for testing.
 
         Args:
@@ -445,43 +437,31 @@ class WeatherDisplay:
 
 @app.command()
 def run(
-    config: Path = typer.Option(..., "--config", "-c", exists=True, dir_okay=False),
-    preview: bool = typer.Option(False, "--preview", "-p"),
-    serve: bool = typer.Option(
-        False,
-        "--serve",
-        "-s",
-        help="When used with --preview, start a simple HTTP server to serve the "
-        "preview directory (use Ctrl-C to stop).",
-    ),
-    once: bool = typer.Option(False, "--once", "-1", help="Run one cycle then exit"),
-    debug: bool = typer.Option(False, "--debug"),
-    stay_awake_url: Optional[str] = typer.Option(
-        None,
-        help="Override URL that returns {'awake': true|false}. "
-        "If omitted, value from config.yaml or the default URL is used.",
-    ),
+    config: Path = CONFIG_OPTION,
+    preview: bool = PREVIEW_OPTION,
+    serve: bool = SERVE_OPTION,
+    once: bool = ONCE_OPTION,
+    debug: bool = DEBUG_OPTION,
+    stay_awake_url: str | None = STAY_AWAKE_URL_OPTION,
     # For testing only - HIDDEN from CLI but typed for pyright
-    display_driver: Optional[str] = typer.Option(None, hidden=True),
-    weather_api: Optional[str] = typer.Option(None, hidden=True),
-    pijuice: Optional[str] = typer.Option(None, hidden=True),
+    display_driver: str | None = typer.Option(None, hidden=True),
+    weather_api: str | None = typer.Option(None, hidden=True),
+    pijuice: str | None = typer.Option(None, hidden=True),
 ) -> None:
     """Run the weather display application."""
     display = WeatherDisplay(
         config,
-        display_driver=cast(Optional[DisplayDriver], display_driver) or IT8951Display(),
-        weather_api=cast(Optional[WeatherAPI], weather_api),
-        pijuice=cast(Optional[PiJuiceLike], pijuice),
+        display_driver=cast(DisplayDriver | None, display_driver) or IT8951Display(),
+        weather_api=cast(WeatherAPI | None, weather_api),
+        pijuice=cast(PiJuiceLike | None, pijuice),
         debug=debug,
     )
 
-    scheduler = Scheduler(
-        display, stay_awake_url or display.settings.stay_awake_url.url
-    )
+    scheduler = Scheduler(display, stay_awake_url or display.settings.stay_awake_url.url)
     scheduler.run(preview, serve, once)
 
 
-# ───────────────────────── config sub‑commands ───────────────────────────────
+# ───────────────────────── config sub-commands ───────────────────────────────
 @config_app.command("validate")
 def validate_config(file: Path):
     """Validate a YAML config file against the schema."""
@@ -494,12 +474,12 @@ def validate_config(file: Path):
 
 
 @config_app.command("wizard")
-def wizard(dst: Path = typer.Argument(..., help="Output config.yaml")):
+def wizard(dst: Path = DST_ARGUMENT):
     """Interactive prompt to create a config file."""
     typer.echo("Interactive config builder - press Enter for defaults.")
 
     while True:
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "lat": float(typer.prompt("Latitude")),
             "lon": float(typer.prompt("Longitude")),
             "city": typer.prompt("City name"),
@@ -512,9 +492,7 @@ def wizard(dst: Path = typer.Argument(..., help="Output config.yaml")):
         except ValidationError as err:
             typer.secho("\nConfig error(s):", fg=typer.colors.RED, err=True)
             for e in err.errors():
-                typer.secho(
-                    f"  • {e['loc'][0]} - {e['msg']}", fg=typer.colors.RED, err=True
-                )
+                typer.secho(f"  • {e['loc'][0]} - {e['msg']}", fg=typer.colors.RED, err=True)
             typer.echo("Please re-enter the values.\n")
 
     dst.write_text(yaml.safe_dump(cfg.model_dump(), sort_keys=False), encoding="utf-8")

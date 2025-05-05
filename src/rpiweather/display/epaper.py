@@ -1,9 +1,10 @@
 from __future__ import annotations
-from pathlib import Path
-from typing import Optional, Any
+
 import logging
-import tempfile
 import os
+import tempfile
+from pathlib import Path
+from typing import Any
 
 from PIL import Image, ImageChops
 
@@ -18,9 +19,7 @@ class IT8951Display(DisplayDriver):
     providing graceful degradation when hardware isn't available.
     """
 
-    def __init__(
-        self, simulate: bool = False, epd_driver: Optional[Any] = None
-    ) -> None:
+    def __init__(self, simulate: bool = False, epd_driver: Any | None = None) -> None:
         """Initialize the display handler.
 
         Args:
@@ -29,7 +28,7 @@ class IT8951Display(DisplayDriver):
         """
         self.logger = logging.getLogger("weather_display")
         self.simulate = simulate
-        self._epd: Optional[Any] = epd_driver  # Allow injection of the driver
+        self._epd: Any | None = epd_driver
         self.settings = UserSettings.load()
         self.vcom = self.settings.vcom_volts
 
@@ -40,18 +39,16 @@ class IT8951Display(DisplayDriver):
         if not simulate and self._epd is None:
             try:
                 # Import the hardware library only when needed
-                from waveshare_epaper_it8951 import IT8951  # type: ignore
+                from waveshare_epaper_it8951 import IT8951  # type: ignore[import]
 
                 self._epd = IT8951()
                 self.logger.debug("IT8951 display initialized")
             except ImportError:
-                self.logger.warning(
-                    "IT8951 module not found, running in simulation mode"
-                )
+                self.logger.warning("IT8951 module not found, running in simulation mode")
                 self.simulate = True
 
-        self._last_displayed_image: Optional[Path] = None
-        self._last_refresh_mode: Optional[RefreshMode] = None
+        self._last_displayed_image: Path | None = None
+        self._last_refresh_mode: RefreshMode | None = None
         self._clear_called: bool = False
 
     def _apply_vcom(self) -> None:
@@ -75,9 +72,7 @@ class IT8951Display(DisplayDriver):
         except Exception:
             pass
 
-    def display_image(
-        self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE
-    ) -> None:
+    def display_image(self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE) -> None:
         """Display an image on the IT8951 panel.
 
         Args:
@@ -93,8 +88,7 @@ class IT8951Display(DisplayDriver):
 
         if self.simulate:
             self.logger.info(
-                f"[SIM] Would display {image_path} "
-                f"(mode {mode_value}, VCOM {self.vcom} V)"
+                f"[SIM] Would display {image_path} (mode {mode_value}, VCOM {self.vcom} V)"
             )
             return
 
@@ -146,11 +140,11 @@ class IT8951Display(DisplayDriver):
         except Exception as e:
             self.logger.error(f"Error clearing display: {e}")
 
-    def get_last_displayed_image(self) -> Optional[Path]:
+    def get_last_displayed_image(self) -> Path | None:
         """Return the path to the last displayed image (for testing)."""
         return self._last_displayed_image
 
-    def get_last_refresh_mode(self) -> Optional[RefreshMode]:
+    def get_last_refresh_mode(self) -> RefreshMode | None:
         """Return the last refresh mode used (for testing)."""
         return self._last_refresh_mode
 

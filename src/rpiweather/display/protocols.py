@@ -1,7 +1,9 @@
 # src/rpiweather/display/protocols.py
 from __future__ import annotations
+
 from pathlib import Path
-from typing import Protocol, runtime_checkable, Optional
+from typing import Protocol, runtime_checkable
+
 from rpiweather.settings import RefreshMode
 
 
@@ -34,9 +36,7 @@ class Display(Protocol):
     this protocol at runtime rather than just during type checking.
     """
 
-    def display_image(
-        self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE
-    ) -> None:
+    def display_image(self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE) -> None:
         """Display an image on the device.
 
         Args:
@@ -69,9 +69,7 @@ class MockHtmlRenderer:
     def __init__(self):
         self.render_calls: list[dict[str, object]] = []
 
-    def render_to_image(
-        self, html: str, output_path: Path, create_file: bool = True
-    ) -> None:
+    def render_to_image(self, html: str, output_path: Path, create_file: bool = True) -> None:
         """Record the render call without actually rendering.
 
         Args:
@@ -98,21 +96,19 @@ class MockDisplay:
 
     def __init__(self):
         self.display_calls: list[dict[str, object]] = []
-        self.clear_calls: list[dict[str, object]] = []  # Track clear() calls
+        self.clear_calls: list[dict[str, object]] = []
 
-    def display_image(
-        self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE
-    ) -> None:
+    def display_image(self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE) -> None:
         """Record the display call without requiring hardware."""
         self.display_calls.append({"image_path": image_path, "mode": mode})
 
     def get_dimensions(self) -> tuple[int, int]:
         """Mock implementation - return a default size."""
-        return (800, 600)  # Example dimensions
+        return (800, 600)
 
     def clear(self) -> None:
         """Mock implementation of clear method."""
-        self.clear_calls.append({})  # Record that clear was called
+        self.clear_calls.append({})
 
     def reset_call_history(self) -> None:
         """Reset the call history for testing."""
@@ -123,7 +119,7 @@ class MockDisplay:
 class ErrorSimulatingDisplay(MockDisplay):
     """Display mock that can simulate hardware errors."""
 
-    def __init__(self, fail_on_methods: Optional[list[str]] = None):
+    def __init__(self, fail_on_methods: list[str] | None = None):
         """Initialize with optional methods that should fail.
 
         Args:
@@ -132,9 +128,7 @@ class ErrorSimulatingDisplay(MockDisplay):
         super().__init__()
         self.fail_on_methods = fail_on_methods or []
 
-    def display_image(
-        self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE
-    ) -> None:
+    def display_image(self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE) -> None:
         """Either record the call or raise an exception based on configuration."""
         if "display_image" in self.fail_on_methods:
             raise RuntimeError("Simulated display hardware failure")
@@ -164,7 +158,7 @@ def create_mock_display() -> MockDisplay:
 
 
 def create_error_simulating_display(
-    fail_on_methods: Optional[list[str]] = None,
+    fail_on_methods: list[str] | None = None,
 ) -> ErrorSimulatingDisplay:
     """Create a display that will fail on specified methods."""
     return ErrorSimulatingDisplay(fail_on_methods)
@@ -187,19 +181,19 @@ def assert_display_called_with(
     """
     assert len(mock_display.display_calls) > 0, "Display was not called"
     last_call = mock_display.display_calls[-1]
-    assert (
-        last_call["image_path"] == expected_image_path
-    ), f"Expected {expected_image_path}, got {last_call['image_path']}"
-    assert (
-        last_call["mode"] == expected_mode
-    ), f"Expected mode {expected_mode}, got {last_call['mode']}"
+    assert last_call["image_path"] == expected_image_path, (
+        f"Expected {expected_image_path}, got {last_call['image_path']}"
+    )
+    assert last_call["mode"] == expected_mode, (
+        f"Expected mode {expected_mode}, got {last_call['mode']}"
+    )
     return True
 
 
 def assert_html_renderer_called_with(
     mock_renderer: MockHtmlRenderer,
-    expected_html: Optional[str] = None,
-    expected_output_path: Optional[Path] = None,
+    expected_html: str | None = None,
+    expected_output_path: Path | None = None,
 ) -> bool:
     """Assert that HTML renderer was called with expected parameters.
 
@@ -215,14 +209,14 @@ def assert_html_renderer_called_with(
     last_call = mock_renderer.render_calls[-1]
 
     if expected_html is not None:
-        assert (
-            last_call["html"] == expected_html
-        ), f"Expected HTML: {expected_html}, got {last_call['html']}"
+        assert last_call["html"] == expected_html, (
+            f"Expected HTML: {expected_html}, got {last_call['html']}"
+        )
 
     if expected_output_path is not None:
-        assert (
-            last_call["output_path"] == expected_output_path
-        ), f"Expected path: {expected_output_path}, got {last_call['output_path']}"
+        assert last_call["output_path"] == expected_output_path, (
+            f"Expected path: {expected_output_path}, got {last_call['output_path']}"
+        )
 
     return True
 

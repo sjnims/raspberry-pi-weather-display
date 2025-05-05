@@ -1,15 +1,17 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
 from rpiweather.display.protocols import (
+    ErrorSimulatingDisplay,
     MockDisplay,
     MockHtmlRenderer,
-    ErrorSimulatingDisplay,
+    assert_display_called_with,
+    assert_display_cleared,
+    assert_html_renderer_called_with,
+    create_error_simulating_display,
     create_mock_display,
     create_mock_html_renderer,
-    create_error_simulating_display,
-    assert_display_called_with,
-    assert_html_renderer_called_with,
-    assert_display_cleared,
 )
 from rpiweather.settings import RefreshMode
 

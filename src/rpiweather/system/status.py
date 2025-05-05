@@ -1,6 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -18,13 +17,13 @@ class SystemStatus:
     """
 
     # Battery information
-    soc: int  # State of charge (percentage)
+    soc: int
     is_charging: bool
     battery_warning: bool = False
-    voltage: Optional[float] = None
+    voltage: float | None = None
 
     # System information
-    last_update: datetime = datetime.now()
+    last_update: datetime = field(default_factory=datetime.now)
 
     @property
     def critical_battery(self) -> bool:

@@ -29,9 +29,9 @@ so no template changes are required.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 
 def _strip_ns(tag: str) -> str:
@@ -98,9 +98,7 @@ def build_sprite(src_dir: Path, out_path: Path, *, prefix: str = "") -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Build SVG sprite from icons directory"
-    )
+    parser = argparse.ArgumentParser(description="Build SVG sprite from icons directory")
     parser.add_argument(
         "--src",
         default="static/icons",

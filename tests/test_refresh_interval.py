@@ -1,4 +1,5 @@
 import pytest
+
 from rpiweather.power import BatteryManager
 
 

@@ -1,10 +1,12 @@
-import pytest
 import json
-from unittest.mock import patch, Mock
-from rpiweather.weather.api import WeatherAPI
+from unittest.mock import Mock, patch
+
+import pytest
+
 from rpiweather.settings.user import UserSettings
-from rpiweather.weather.models import WeatherResponse
+from rpiweather.weather.api import WeatherAPI
 from rpiweather.weather.errors import WeatherAPIError
+from rpiweather.weather.models import WeatherResponse
 
 
 @pytest.fixture

@@ -5,20 +5,20 @@ from __future__ import annotations
 import platform
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
-from rpiweather.settings import UserSettings, ApplicationSettings
 from rpiweather.display.protocols import HtmlRenderer
+from rpiweather.settings import ApplicationSettings, UserSettings
 from rpiweather.system.status import SystemStatus
+from rpiweather.utils import TimeUtils
 from rpiweather.weather.api import WeatherResponse
 from rpiweather.weather.utils import (
-    WeatherIcons,
-    UnitConverter,
     PrecipitationUtils,
+    UnitConverter,
+    WeatherIcons,
 )
-from rpiweather.utils import TimeUtils
 
 
 # Top-level exports for Pyright
@@ -52,8 +52,8 @@ class TemplateRenderer:
 
     def __init__(
         self,
-        templates_dir: Optional[Path] = None,
-        user_settings: Optional[UserSettings] = None,
+        templates_dir: Path | None = None,
+        user_settings: UserSettings | None = None,
     ) -> None:
         """Initialize the template renderer.
 
@@ -117,7 +117,7 @@ class TemplateRenderer:
         Returns:
             Rendered HTML
         """
-        return cast(str, self.dashboard_template.render(**context))  # type: ignore
+        return self.dashboard_template.render(**context)
 
 
 class DashboardContextBuilder:
@@ -135,7 +135,7 @@ class DashboardContextBuilder:
     - Prepares icon and label mappings
     """
 
-    def __init__(self, user_settings: Optional[UserSettings] = None) -> None:
+    def __init__(self, user_settings: UserSettings | None = None) -> None:
         """Initialize with configuration.
 
         Args:
@@ -148,7 +148,7 @@ class DashboardContextBuilder:
         self,
         weather: WeatherResponse,
         system_status: SystemStatus,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build complete context for dashboard template.
 
         Args:
@@ -181,12 +181,8 @@ class DashboardContextBuilder:
         # Sun and moon information
         sunrise_dt = weather.current.sunrise
         sunset_dt = weather.current.sunset
-        sunrise_str = TimeUtils.format_datetime(
-            sunrise_dt, self.app_settings.formats.general
-        )
-        sunset_str = TimeUtils.format_datetime(
-            sunset_dt, self.app_settings.formats.general
-        )
+        sunrise_str = TimeUtils.format_datetime(sunrise_dt, self.app_settings.formats.general)
+        sunset_str = TimeUtils.format_datetime(sunset_dt, self.app_settings.formats.general)
         moon_phase = weather.daily[0].moon_phase if weather.daily else 0.0
 
         # Process hourly forecast
@@ -201,9 +197,7 @@ class DashboardContextBuilder:
             : self.user_settings.daily_count
         ]
         for d in daily:
-            d.weekday_short = d.dt.astimezone().strftime(
-                self.app_settings.formats.daily
-            )
+            d.weekday_short = d.dt.astimezone().strftime(self.app_settings.formats.daily)
 
         # Pressure conversion: OpenWeather returns pressure in hPa
         pressure_hpa = weather.current.pressure
@@ -262,9 +256,9 @@ class WkhtmlToPngRenderer(HtmlRenderer):
 
     def __init__(
         self,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
-        user_settings: Optional[UserSettings] = None,
+        width: int | None = None,
+        height: int | None = None,
+        user_settings: UserSettings | None = None,
     ) -> None:
         """Initialize renderer with optional custom dimensions.
 
@@ -298,7 +292,7 @@ class WkhtmlToPngRenderer(HtmlRenderer):
         ]
 
         if platform.system() == "Linux":
-            cmd = ["xvfb-run", "-a"] + cmd
+            cmd = ["xvfb-run", "-a", *cmd]
 
         subprocess.run(cmd, check=True)
 

@@ -1,12 +1,12 @@
-import pytest
-
-from pytest import MonkeyPatch
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 from zoneinfo import ZoneInfo
 
+import pytest
+from pytest import MonkeyPatch
+
 from rpiweather.scheduler import Scheduler
-from rpiweather.settings import UserSettings, QuietHours
+from rpiweather.settings import QuietHours, UserSettings
 
 
 # Fixture to provide a UserSettings config object for tests

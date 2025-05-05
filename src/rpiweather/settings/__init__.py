@@ -5,23 +5,23 @@ This package provides:
 - ApplicationSettings: Internal application settings and defaults
 """
 
-from .user import UserSettings, QuietHours
 from .application import (
     ApplicationSettings,
     AppPaths,
     FormatAdapter,
-    RefreshSettings,
     RefreshMode,
+    RefreshSettings,
     StayAwakeURL,
 )
+from .user import QuietHours, UserSettings
 
 __all__ = [
-    "UserSettings",
-    "QuietHours",
-    "ApplicationSettings",
     "AppPaths",
+    "ApplicationSettings",
     "FormatAdapter",
-    "RefreshSettings",
+    "QuietHours",
     "RefreshMode",
+    "RefreshSettings",
     "StayAwakeURL",
+    "UserSettings",
 ]

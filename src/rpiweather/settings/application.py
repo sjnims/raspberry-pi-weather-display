@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from pathlib import Path
-from typing import Optional
 from enum import Enum
+from pathlib import Path
 
 from rpiweather.settings.user import UserSettings
 
@@ -45,7 +44,7 @@ class AppPaths:
     preview_png: str = "dash-preview.png"
 
     @classmethod
-    def from_base_dir(cls, base_dir: Path) -> "AppPaths":
+    def from_base_dir(cls, base_dir: Path) -> AppPaths:
         """Create paths from base directory."""
         return cls(
             config_file=base_dir / "config.yaml",
@@ -144,11 +143,11 @@ class ApplicationSettings:
     def __init__(
         self,
         user_settings: UserSettings,
-        paths: Optional[AppPaths] = None,
-        formats: Optional[FormatAdapter] = None,
-        refresh: Optional[RefreshSettings] = None,
-        stay_awake_url: Optional[StayAwakeURL] = None,
-        refresh_mode: Optional[RefreshMode] = None,
+        paths: AppPaths | None = None,
+        formats: FormatAdapter | None = None,
+        refresh: RefreshSettings | None = None,
+        stay_awake_url: StayAwakeURL | None = None,
+        refresh_mode: RefreshMode | None = None,
     ):
         """Initialize application settings with configuration sources."""
         self.user = user_settings  # Store user settings directly
