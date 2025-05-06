@@ -2,7 +2,7 @@
 
 __version__ = "0.1.0"
 
-from rpiweather.system.utils import BatteryUtils
+from rpiweather.system import BatteryUtils
 from rpiweather.types import PiJuiceLike
 
 from .air_quality import AirQuality

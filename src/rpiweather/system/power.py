@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import subprocess
 from datetime import UTC, datetime, timedelta
-from typing import Final, Protocol, runtime_checkable
+from typing import Any, Final, Protocol, runtime_checkable
 
 from rpiweather.settings import QuietHours, UserSettings
 from rpiweather.types.pijuice import PiJuiceLike
@@ -275,3 +275,29 @@ class QuietHoursHelper:
     def seconds_until_end(self, ts: datetime) -> int:
         """Return seconds until quiet hours end, or 0 if not in quiet hours."""
         return QuietHoursManager.seconds_until_quiet_end(ts, self._quiet)
+
+
+class BatteryUtils:
+    """Utilities for battery status management."""
+
+    @staticmethod
+    def get_battery_status(pijuice: PiJuiceLike) -> dict[str, Any]:
+        """Get comprehensive battery status information.
+
+        Args:
+            pijuice: PiJuice or compatible object
+
+        Returns:
+            Dictionary with battery status information
+        """
+        status = pijuice.status.GetStatus()
+        charge_level = status.get("battery", {}).get("charge_level", 0)
+        is_charging = status.get("battery", {}).get("is_charging", False)
+        is_discharging = status.get("battery", {}).get("is_discharging", False)
+        battery_voltage = status.get("battery", {}).get("voltage", 0.0)
+        return {
+            "charge_level": charge_level,
+            "is_charging": is_charging,
+            "is_discharging": is_discharging,
+            "battery_voltage": battery_voltage,
+        }

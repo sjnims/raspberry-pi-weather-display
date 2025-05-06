@@ -6,10 +6,10 @@ from collections.abc import Callable
 from datetime import timedelta
 from typing import TYPE_CHECKING, Final
 
-from rpiweather.power import BatteryManager, PowerManager, QuietHoursHelper
-from rpiweather.remote import create_wake_state_provider
 from rpiweather.scheduling.models import RefreshSettings, StayAwakeURL
 from rpiweather.settings import RefreshMode
+from rpiweather.system.power import BatteryManager, PowerManager, QuietHoursHelper
+from rpiweather.system.remote import create_wake_state_provider
 from rpiweather.utils import TimeUtils
 
 if TYPE_CHECKING:
