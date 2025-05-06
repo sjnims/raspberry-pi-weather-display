@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 
+from rpiweather.scheduling.models import RefreshSettings, StayAwakeURL
 from rpiweather.settings.user import UserSettings
 
 
@@ -86,34 +86,6 @@ class FormatAdapter:
     def full_date(self) -> str:
         """Full date format."""
         return self._user.time_format_full_date
-
-
-@dataclass
-class RefreshSettings:
-    """E-ink display refresh settings.
-
-    Controls how frequently the display performs full refreshes versus partial
-    refreshes, and defines minimum sleep durations between refresh cycles.
-
-    Full refreshes clear ghosting artifacts but take longer and use more power.
-    """
-
-    full_refresh_interval: timedelta = timedelta(hours=6)
-    min_shutdown_sleep_minutes: int = 20
-
-
-@dataclass
-class StayAwakeURL:
-    """Remote stay-awake control endpoint configuration.
-
-    The application can optionally check a remote URL that returns
-    a JSON response with an "awake" flag. This allows for external
-    control of the device's sleep behavior.
-
-    Example response: {"awake": true}
-    """
-
-    url: str = "http://localhost:8000/stay_awake.json"
 
 
 class ApplicationSettings:

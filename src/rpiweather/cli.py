@@ -19,7 +19,7 @@ from pydantic import ValidationError
 from rpiweather.controller import WeatherDisplay
 from rpiweather.display.epaper import IT8951Display
 from rpiweather.display.protocols import DisplayDriver, MockDisplay
-from rpiweather.scheduler import Scheduler
+from rpiweather.scheduling import Scheduler
 from rpiweather.settings import UserSettings
 from rpiweather.types.pijuice import PiJuiceLike
 from rpiweather.weather import WeatherAPI

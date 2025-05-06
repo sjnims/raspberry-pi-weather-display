@@ -1,24 +1,21 @@
-"""Scheduler for the E-Ink Weather Display application."""
+"""Scheduler package for E-Ink Weather Display application."""
 
 import logging
 import time
 from collections.abc import Callable
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from rpiweather.power import BatteryManager, PowerManager, QuietHoursHelper
 from rpiweather.remote import create_wake_state_provider
-from rpiweather.settings import (
-    RefreshMode,
-    RefreshSettings,
-    StayAwakeURL,
-)
+from rpiweather.scheduling.models import RefreshSettings, StayAwakeURL
+from rpiweather.settings import RefreshMode
 from rpiweather.utils import TimeUtils
 
 if TYPE_CHECKING:
-    from rpiweather.cli import WeatherDisplay
+    from rpiweather.controller import WeatherDisplay
 
-logger = logging.getLogger("rpiweather")
+logger: Final = logging.getLogger(__name__)
 
 
 class Scheduler:
