@@ -7,9 +7,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from rpiweather.display.protocols import HtmlRenderer
+from rpiweather.display.protocols import HtmlRenderer, TemplateProtocol
 from rpiweather.settings import ApplicationSettings, UserSettings
 from rpiweather.system.status import SystemStatus
 from rpiweather.utils import TimeUtils
@@ -48,7 +48,7 @@ class TemplateRenderer:
     but can be configured with custom template directories.
     """
 
-    dashboard_template: Template
+    dashboard_template: TemplateProtocol
 
     def __init__(
         self,

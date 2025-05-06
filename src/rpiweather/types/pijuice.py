@@ -60,8 +60,26 @@ class StatusInterface(Protocol):
 
 
 @runtime_checkable
+class PowerInterface(Protocol):
+    """Protocol for PiJuice power control."""
+
+    def SetWatchdog(self, timeout: int) -> dict[str, Any]: ...
+    def SetSystemPowerSwitch(self, state: int) -> dict[str, Any]: ...
+    def SetPowerOff(self, delay: int) -> dict[str, Any]: ...
+
+
+@runtime_checkable
+class LEDInterface(Protocol):
+    """Protocol for PiJuice LED control."""
+
+    def SetLedState(self, led: str, state: dict[str, Any]) -> dict[str, Any]: ...
+
+
+@runtime_checkable
 class PiJuiceLike(Protocol):
     """Protocol for objects that behave like PiJuice."""
 
     status: StatusInterface
-    rtc: RTCInterface
+    RTC: RTCInterface
+    power: PowerInterface
+    leds: LEDInterface

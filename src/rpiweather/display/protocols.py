@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from rpiweather.settings import RefreshMode
 
@@ -232,3 +232,22 @@ def assert_display_cleared(mock_display: MockDisplay) -> bool:
     """
     assert len(mock_display.clear_calls) > 0, "Display clear method was not called"
     return True
+
+
+class TemplateProtocol(Protocol):
+    """Protocol defining the expected interface for templates.
+
+    This protocol abstracts the Jinja2 Template interface to allow
+    for proper type checking of template operations.
+    """
+
+    def render(self, **kwargs: Any) -> str:
+        """Render a template with the given context variables.
+
+        Args:
+            **kwargs: Template context variables
+
+        Returns:
+            Rendered template as a string
+        """
+        ...

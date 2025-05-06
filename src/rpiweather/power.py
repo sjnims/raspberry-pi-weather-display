@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 import subprocess
 from datetime import UTC, datetime, timedelta
-from typing import Any, Final, Protocol, cast, runtime_checkable
+from typing import Final, Protocol, runtime_checkable
 
 from rpiweather.settings import QuietHours, UserSettings
+from rpiweather.types.pijuice import PiJuiceLike
 
 logger: Final = logging.getLogger(__name__)
 
@@ -43,15 +44,15 @@ class PiJuiceWakeup:
         try:
             import pijuice  # type: ignore[import]
 
-            pj = pijuice.PiJuice(1, 0x14)
+            pj: PiJuiceLike = pijuice.PiJuice(1, 0x14)  # type: ignore[assignment]
             wake_secs = self._datetime_to_epoch(wake_time)
-            resp = pj.rtc.SetWakeup(wake_secs)
+            resp = pj.RTC.SetWakeup(wake_secs)  # type: ignore[no-untyped-call]
 
-            if resp.get("error") == "NO_ERROR":
+            if resp.get("error") == "NO_ERROR":  # type: ignore[attr-defined]
                 logger.info("PiJuice wake-up set for %s", wake_time.isoformat())
                 return True
 
-            logger.warning("PiJuice SetWakeup error: %s", cast(Any, resp))
+            logger.warning("PiJuice SetWakeup error: %s", resp)  # type: ignore[unreachable]
             return False
 
         except Exception as exc:

@@ -2,12 +2,12 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from jinja2 import Template
 
 from rpiweather.display.epaper import IT8951Display
-from rpiweather.display.protocols import DisplayDriver
+from rpiweather.display.protocols import DisplayDriver, TemplateProtocol
 from rpiweather.settings import RefreshMode
 from rpiweather.system.status import SystemStatus
 
@@ -124,6 +124,9 @@ class ErrorRenderer:
         # Create template from the template string
         template = Template(self.ERROR_TEMPLATE)
 
+        # More explicitly cast the template to the Protocol type
+        typed_template = cast(TemplateProtocol, template)
+
         # Create context with current timestamp
         context = {
             "error_message": error_message,
@@ -134,7 +137,7 @@ class ErrorRenderer:
         typed_context: dict[str, Any] = context
 
         # Render template to HTML
-        html_content = template.render(**typed_context)
+        html_content = typed_template.render(**typed_context)
 
         # Convert to image
         self.html_renderer.render_to_image(html_content, output_path)

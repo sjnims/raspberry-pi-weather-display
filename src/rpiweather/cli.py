@@ -154,10 +154,10 @@ class WeatherDisplay:
             # Attempt to import PiJuice library
             import pijuice  # type: ignore
 
-            pj = cast(PiJuiceLike, pijuice.PiJuice(1, 0x14))
+            pj: PiJuiceLike = pijuice.PiJuice(1, 0x14)  # type: ignore[assignment]
 
-            self._ensure_rtc_synced(pj)
-            return pj
+            self._ensure_rtc_synced(pj)  # type: ignore[no-untyped-call]
+            return pj  # type: ignore[return-value]
         except Exception as exc:
             logger.debug("PiJuice not available: %s", exc)
             return None
@@ -165,9 +165,9 @@ class WeatherDisplay:
     def _ensure_rtc_synced(self, pijuice: PiJuiceLike) -> None:
         """Ensure the PiJuice RTC is synchronized with system time."""
         try:
-            rtc_time = pijuice.rtc.GetTime()["data"]
+            rtc_time = pijuice.RTC.GetTime()["data"]
             if rtc_time["year"] < 2024:
-                pijuice.rtc.SetTime()
+                pijuice.RTC.SetTime()
                 logger.info("RTC set from system clock")
         except Exception as exc:
             logger.debug("RTC sync skipped: %s", exc)
@@ -300,7 +300,7 @@ class WeatherDisplay:
         )
 
         # Build template context using OO approach
-        ctx = self.context_builder.build_dashboard_context(weather, system_status)
+        ctx: dict[str, Any] = self.context_builder.build_dashboard_context(weather, system_status)
 
         # Render HTML template using OO approach
         html = self.template_renderer.dashboard_template.render(**ctx)
