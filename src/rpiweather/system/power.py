@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import logging
 import subprocess
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Final, Protocol, runtime_checkable
 
 from rpiweather.settings import QuietHours, UserSettings
 from rpiweather.types.pijuice import PiJuiceLike
+from rpiweather.utils.time import TimeUtils
 
 logger: Final = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class PiJuiceWakeup:
             import pijuice  # type: ignore[import]
 
             pj: PiJuiceLike = pijuice.PiJuice(1, 0x14)  # type: ignore[assignment]
-            wake_secs = self._datetime_to_epoch(wake_time)
+            wake_secs = TimeUtils.datetime_to_epoch(wake_time)
             resp = pj.RTC.SetWakeup(wake_secs)  # type: ignore[no-untyped-call]
 
             if resp.get("error") == "NO_ERROR":  # type: ignore[attr-defined]
@@ -58,19 +59,6 @@ class PiJuiceWakeup:
         except Exception as exc:
             logger.debug("PiJuice wake-up unavailable: %s", exc)
             return False
-
-    def _datetime_to_epoch(self, dt: datetime) -> int:
-        """Convert datetime to epoch seconds.
-
-        Args:
-            dt: Datetime object (assumes local timezone if not specified)
-
-        Returns:
-            Epoch seconds as integer
-        """
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=UTC)
-        return int(dt.timestamp())
 
 
 class LinuxRTCWakeup:
@@ -94,7 +82,7 @@ class LinuxRTCWakeup:
             True if successful, False otherwise
         """
         try:
-            wake_epoch = str(self._datetime_to_epoch(wake_time))
+            wake_epoch = str(TimeUtils.datetime_to_epoch(wake_time))
             with open(self.rtc_path, "w", encoding="utf-8") as f:
                 f.write("0")  # Clear previous alarm
                 f.write(wake_epoch)
@@ -105,19 +93,6 @@ class LinuxRTCWakeup:
         except Exception as exc:
             logger.warning("Failed to set RTC wakealarm: %s", exc)
             return False
-
-    def _datetime_to_epoch(self, dt: datetime) -> int:
-        """Convert datetime to epoch seconds.
-
-        Args:
-            dt: Datetime object (assumes local timezone if not specified)
-
-        Returns:
-            Epoch seconds as integer
-        """
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=UTC)
-        return int(dt.timestamp())
 
 
 class PowerManager:
@@ -209,7 +184,6 @@ class BatteryManager:
 
     def should_power_off(self, soc: int, now: datetime) -> bool:
         """Determine if system should power off based on battery and time."""
-        # Use self.config instead of passing cfg parameter
         if soc <= self.config.poweroff_soc:
             return True
 

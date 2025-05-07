@@ -1,10 +1,11 @@
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, TypeVar
 
 from pydantic import BaseModel, field_validator
 
-# Define a more precise return type for your validator factory
+from rpiweather.utils.time import TimeUtils
+
 ValidatorCallable = Callable[[type[Any], Any], Any]
 
 T = TypeVar("T", bound="TimeStampModel")
@@ -27,7 +28,7 @@ class TimeStampModel(BaseModel):
         Returns:
             datetime: Timezone-aware datetime object in UTC
         """
-        return datetime.fromtimestamp(v, tz=UTC)
+        return TimeUtils.epoch_to_datetime(v)
 
     @staticmethod
     def timestamp_validator(field_name: str) -> ValidatorCallable:
@@ -40,12 +41,10 @@ class TimeStampModel(BaseModel):
             A validator method for the specified field
         """
 
-        # Define the validator function with proper type annotations
         @field_validator(field_name, mode="before")
         def validate_timestamp(cls: type[Any], v: Any) -> Any:
             if isinstance(v, int):
                 return TimeStampModel.convert_timestamp(v)
             return v
 
-        # Simply return the validator function - no need for cast
         return validate_timestamp

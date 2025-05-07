@@ -22,7 +22,7 @@
     </svg>
     <span>{{ current.wind_speed | round }} {{ units_wind }}</span>
   </div>
-  {% set precip = hourly_precip(current) %}
+  {% set precip = get_precipitation_amount(current) %}
   {% if precip %}
   <div class="weather-display__detail">
     <svg class="weather-display__detail-icon">
@@ -69,7 +69,8 @@
   </div>
   <div class="weather-display__detail">
     <svg class="weather-display__detail-icon"
-         style="transform: rotate({{ (current.wind_deg + 180) % 360 }}deg);">
+         data-wind-indicator
+         style="--wind-angle: {{ current.wind_deg | wind_direction_angle }};">
       <use href="{{ url_for('static', filename='icons/sprite.svg') }}#wi-wind-deg"></use>
     </svg>
     <span>{{ current.wind_deg | deg_to_cardinal }}</span>

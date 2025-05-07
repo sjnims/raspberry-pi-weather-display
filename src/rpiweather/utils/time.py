@@ -67,3 +67,29 @@ class TimeUtils:
             Current datetime with local timezone
         """
         return datetime.now(UTC).astimezone()
+
+    @staticmethod
+    def datetime_to_epoch(dt: datetime) -> int:
+        """Convert datetime to epoch seconds.
+
+        Args:
+            dt: Datetime object (assumes UTC timezone if not specified)
+
+        Returns:
+            Epoch seconds as integer
+        """
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return int(dt.timestamp())
+
+    @staticmethod
+    def epoch_to_datetime(timestamp: int) -> datetime:
+        """Convert UNIX timestamp to UTC datetime with timezone information.
+
+        Args:
+            timestamp: UNIX timestamp (seconds since epoch)
+
+        Returns:
+            Timezone-aware datetime object in UTC
+        """
+        return datetime.fromtimestamp(timestamp, tz=UTC)

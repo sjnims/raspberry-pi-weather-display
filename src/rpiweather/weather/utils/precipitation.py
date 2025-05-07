@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from rpiweather.types.weather import PrecipObj
-from rpiweather.weather.utils.units import UnitConverter
 
 
 class PrecipitationUtils:
@@ -28,11 +27,10 @@ class PrecipitationUtils:
             return 0.0
 
     @classmethod
-    def hourly_precip(
+    def get_precipitation_amount(
         cls,
         hour: Mapping[str, Any] | PrecipObj,
-        imperial: bool = False,
-    ) -> str:
+    ) -> float:
         """Format hourly precipitation amount (rain or snow)."""
         if isinstance(hour, Mapping):
             rain_amt = cls.get_one_hour_amt(hour.get("rain"))
@@ -42,14 +40,4 @@ class PrecipitationUtils:
             snow_amt = cls.get_one_hour_amt(getattr(hour, "snow", None))
 
         amount: float = rain_amt or snow_amt
-        if amount <= 0:
-            return ""
-        if imperial:
-            amount = UnitConverter.mm_to_inches(amount)
-            rounded = round(amount, 2)
-            s = str(rounded)
-            # Remove trailing zeros and dot if needed (e.g. 0.10 -> 0.1, 0.00 -> "")
-            if "." in s:
-                s = s.rstrip("0").rstrip(".")
-            return s
-        return f"{amount:.2f}"
+        return amount

@@ -15,6 +15,11 @@ from .utils import (
     WeatherIcons,
 )
 
+# Re-export commonly used function for other domains
+deg_to_cardinal = UnitConverter.deg_to_cardinal
+hpa_to_inhg = UnitConverter.hpa_to_inhg
+beaufort_from_speed = UnitConverter.beaufort_from_speed
+
 # Define what gets imported with: from rpiweather.weather import *
 __all__ = [
     "AirQuality",
@@ -31,4 +36,7 @@ __all__ = [
     "WeatherAPIError",
     "WeatherIcons",
     "WeatherResponse",
+    "beaufort_from_speed",
+    "deg_to_cardinal",
+    "hpa_to_inhg",
 ]
