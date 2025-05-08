@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-from rpiweather.settings.application import RefreshMode
+from rpiweather.common.enums import RefreshMode
 
 
 class HtmlRenderer(Protocol):

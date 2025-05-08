@@ -3,23 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 
+from rpiweather.common.enums import RefreshMode
 from rpiweather.scheduling.models import RefreshSettings, StayAwakeURL
 from rpiweather.settings.user import UserSettings
-
-
-class RefreshMode(Enum):
-    """Display refresh modes for e-paper displays.
-
-    Different refresh modes offer tradeoffs between image quality, refresh speed,
-    and power consumption. The optimal mode depends on display content and
-    battery considerations.
-    """
-
-    FULL = 0  # Full white-black-white refresh (highest quality, slowest)
-    GREYSCALE = 2  # 16-level greyscale refresh (GC16, balanced mode)
 
 
 @dataclass

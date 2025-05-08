@@ -6,8 +6,8 @@ from collections.abc import Callable
 from datetime import timedelta
 from typing import TYPE_CHECKING, Final
 
+from rpiweather.common.enums import RefreshMode
 from rpiweather.scheduling.models import RefreshSettings, StayAwakeURL
-from rpiweather.settings.application import RefreshMode
 from rpiweather.system.power import BatteryManager, PowerManager, QuietHoursHelper
 from rpiweather.system.remote import create_wake_state_provider
 from rpiweather.utils.time import TimeUtils
