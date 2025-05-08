@@ -11,8 +11,7 @@
       <div class="forecast__card-meta">
         {{ h.wind_speed | round(0) }} {{ units_wind }}<br>
         <svg class="forecast__wind-icon"
-             data-wind-indicator
-             style="--wind-angle: {{ h.wind_deg | wind_direction_angle }};">
+             style="transform: rotate({{ h.wind_deg | wind_direction_angle }}); transform-origin: center center;">
           <use href="{{ url_for('static', filename='icons/sprite.svg') }}#wi-wind-deg"></use>
         </svg><br>
         {{ get_precipitation_amount(h) }}

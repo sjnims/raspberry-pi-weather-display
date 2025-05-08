@@ -69,8 +69,7 @@
   </div>
   <div class="weather-display__detail">
     <svg class="weather-display__detail-icon"
-         data-wind-indicator
-         style="--wind-angle: {{ current.wind_deg | wind_direction_angle }};">
+         style="transform: rotate({{ current.wind_deg | wind_direction_angle }}); transform-origin: center center;">
       <use href="{{ url_for('static', filename='icons/sprite.svg') }}#wi-wind-deg"></use>
     </svg>
     <span>{{ current.wind_deg | deg_to_cardinal }}</span>
