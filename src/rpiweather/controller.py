@@ -20,17 +20,15 @@ from rpiweather.display.render import (
     TemplateRenderer,
     WkhtmlToPngRenderer,
 )
-from rpiweather.settings import ApplicationSettings, RefreshMode, UserSettings
+from rpiweather.settings.application import ApplicationSettings, RefreshMode, UserSettings
+from rpiweather.system.power import BatteryUtils
 from rpiweather.system.status import SystemStatus
 from rpiweather.types.pijuice import PiJuiceLike
-from rpiweather.utils import TimeUtils
-from rpiweather.weather import (
-    BatteryUtils,
-    WeatherAPI,
-    WeatherAPIError,
-    WeatherIcons,
-    WeatherResponse,
-)
+from rpiweather.utils.time import TimeUtils
+from rpiweather.weather.api import WeatherAPI
+from rpiweather.weather.errors import WeatherAPIError
+from rpiweather.weather.models import WeatherResponse
+from rpiweather.weather.utils.icons import WeatherIcons
 
 TEST_CONFIG_YAML = """\
 api_key: "test_api_key"

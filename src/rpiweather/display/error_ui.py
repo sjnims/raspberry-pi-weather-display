@@ -8,7 +8,7 @@ from jinja2 import Template
 
 from rpiweather.display.epaper import IT8951Display
 from rpiweather.display.protocols import DisplayDriver, TemplateProtocol
-from rpiweather.settings import RefreshMode
+from rpiweather.settings.application import RefreshMode
 from rpiweather.system.status import SystemStatus
 
 

@@ -3,6 +3,7 @@
   "typeCheckingMode": "strict",
 
   "reportMissingImports": true,
+  "reportImportCycles": true,
   "reportMissingTypeStubs": false,
   "useLibraryCodeForTypes": true,
 

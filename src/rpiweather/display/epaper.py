@@ -9,7 +9,7 @@ from typing import Any
 from PIL import Image, ImageChops
 
 from rpiweather.display.protocols import DisplayDriver
-from rpiweather.settings import RefreshMode, UserSettings
+from rpiweather.settings.application import RefreshMode, UserSettings
 
 
 class IT8951Display(DisplayDriver):
@@ -72,7 +72,11 @@ class IT8951Display(DisplayDriver):
         except Exception:
             pass
 
-    def display_image(self, image_path: Path, mode: RefreshMode = RefreshMode.GREYSCALE) -> None:
+    def display_image(
+        self,
+        image_path: Path,
+        mode: RefreshMode = RefreshMode.GREYSCALE,
+    ) -> None:
         """Display an image on the IT8951 panel.
 
         Args:

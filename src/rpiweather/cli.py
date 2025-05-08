@@ -20,9 +20,9 @@ from rpiweather.controller import WeatherDisplay
 from rpiweather.display.epaper import IT8951Display
 from rpiweather.display.protocols import DisplayDriver, MockDisplay
 from rpiweather.scheduling import Scheduler
-from rpiweather.settings import UserSettings
+from rpiweather.settings.application import UserSettings
 from rpiweather.types.pijuice import PiJuiceLike
-from rpiweather.weather import WeatherAPI
+from rpiweather.weather.api import WeatherAPI
 
 # ── CLI setup ────────────────────────────────────────────────────────────────
 app = typer.Typer(help="E-Ink Weather Display CLI", add_completion=False)

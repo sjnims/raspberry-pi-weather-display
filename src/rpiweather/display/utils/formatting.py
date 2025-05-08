@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from rpiweather.types.weather import PrecipObj
-from rpiweather.weather import PrecipitationUtils
+from rpiweather.weather.utils.precipitation import PrecipitationUtils
 from rpiweather.weather.utils.units import UnitConverter
 
 

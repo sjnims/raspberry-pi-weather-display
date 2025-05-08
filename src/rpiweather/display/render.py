@@ -10,18 +10,14 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from rpiweather.display.protocols import HtmlRenderer, TemplateProtocol
-from rpiweather.display.utils import wind_direction_angle
-from rpiweather.settings import ApplicationSettings, UserSettings
+from rpiweather.display.utils.formatting import wind_direction_angle
+from rpiweather.settings.application import ApplicationSettings, UserSettings
 from rpiweather.system.status import SystemStatus
-from rpiweather.utils import TimeUtils
-from rpiweather.weather import beaufort_from_speed, deg_to_cardinal, hpa_to_inhg
+from rpiweather.utils.time import TimeUtils
 from rpiweather.weather.api import WeatherResponse
-from rpiweather.weather.utils import (
-    PrecipitationUtils,
-    WeatherIcons,
-)
-
-ts_to_dt = TimeUtils.to_local_datetime
+from rpiweather.weather.utils.icons import WeatherIcons
+from rpiweather.weather.utils.precipitation import PrecipitationUtils
+from rpiweather.weather.utils.units import UnitConverter
 
 
 # Define classes first
@@ -92,12 +88,12 @@ class TemplateRenderer:
         """Register custom filters with the Jinja environment."""
         self.env.filters.update(
             {
-                "deg_to_cardinal": deg_to_cardinal,
+                "deg_to_cardinal": UnitConverter.deg_to_cardinal,
                 "weather_icon": WeatherIcons.get_icon_filename,
                 "moon_phase_icon": WeatherIcons.get_moon_phase_icon,
                 "moon_phase_label": WeatherIcons.get_moon_phase_label,
                 "wind_direction_angle": wind_direction_angle,
-                "ts_to_dt": ts_to_dt,
+                "ts_to_dt": TimeUtils.to_local_datetime,
                 "strftime": TimeUtils.format_datetime,
             }
         )
@@ -195,7 +191,11 @@ class DashboardContextBuilder:
 
         # Pressure conversion: OpenWeather returns pressure in hPa
         pressure_hpa = weather.current.pressure
-        pressure_value = pressure_hpa if self.user_settings.is_metric else hpa_to_inhg(pressure_hpa)
+        pressure_value = (
+            pressure_hpa
+            if self.user_settings.is_metric
+            else UnitConverter.hpa_to_inhg(pressure_hpa)
+        )
 
         # Build the complete context
         ctx = {
@@ -223,7 +223,7 @@ class DashboardContextBuilder:
             "daylight": TimeUtils.get_time_difference_string(sunrise_dt, sunset_dt),
             "uvi_max": max((uvi[1] for uvi in uvi_slice), default=0),
             "uvi_occurred": max_uvi_time is not None and now > max_uvi_time,
-            "bft": beaufort_from_speed(weather.current.wind_speed),
+            "bft": UnitConverter.beaufort_from_speed(weather.current.wind_speed),
             "aqi": weather.air_quality.aqi if weather.air_quality else "N/A",
         }
 
@@ -285,6 +285,3 @@ class WkhtmlToPngRenderer(HtmlRenderer):
             cmd = ["xvfb-run", "-a", *cmd]
 
         subprocess.run(cmd, check=True)
-
-
-__all__ = ["ts_to_dt"]

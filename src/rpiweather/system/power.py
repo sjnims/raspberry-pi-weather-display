@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime, timedelta
 from typing import Any, Final, Protocol, runtime_checkable
 
-from rpiweather.settings import QuietHours, UserSettings
+from rpiweather.settings.user import QuietHours, UserSettings
 from rpiweather.types.pijuice import PiJuiceLike
 from rpiweather.utils.time import TimeUtils
 

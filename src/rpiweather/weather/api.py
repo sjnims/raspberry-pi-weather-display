@@ -12,16 +12,12 @@ from typing import Any, Final, cast
 import requests
 
 from rpiweather.display.utils.formatting import format_precip
-from rpiweather.settings import UserSettings
-from rpiweather.utils import TimeUtils
-from rpiweather.weather import beaufort_from_speed, deg_to_cardinal
-from rpiweather.weather.models import Daily
-
-from .errors import NetworkError, WeatherAPIError
-from .models import WeatherResponse
-from .utils import (
-    WeatherIcons,
-)
+from rpiweather.settings.user import UserSettings
+from rpiweather.utils.time import TimeUtils
+from rpiweather.weather.errors import NetworkError, WeatherAPIError
+from rpiweather.weather.models import Daily, WeatherResponse
+from rpiweather.weather.utils.icons import WeatherIcons
+from rpiweather.weather.utils.units import UnitConverter
 
 logger = logging.getLogger(__name__)
 
@@ -228,12 +224,12 @@ class WeatherAPI:
             "aqi": aqi,
             "moon_phase": moon_phase,
             # wind / Beaufort
-            "bft": beaufort_from_speed(speed),
+            "bft": UnitConverter.beaufort_from_speed(speed),
             # forecast slices
             "hourly": [h for h in weather.hourly if h.dt.astimezone() > now][: cfg.hourly_count],
             "daily": future_daily,
             # helper filters
-            "deg_to_cardinal": deg_to_cardinal,
+            "deg_to_cardinal": UnitConverter.deg_to_cardinal,
             "arrow_deg": arrow_deg,
             "weather_icon": WeatherIcons.get_icon_filename,
             # bind metric/imperial choice once so templates stay simple
