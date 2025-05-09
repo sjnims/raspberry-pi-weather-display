@@ -10,7 +10,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from rpiweather.display.protocols import HtmlRenderer, TemplateProtocol
-from rpiweather.display.utils.formatting import wind_direction_angle
+from rpiweather.display.utils.formatting import format_pressure, wind_direction_angle
 from rpiweather.settings.application import ApplicationSettings, UserSettings
 from rpiweather.system.status import SystemStatus
 from rpiweather.utils.time import TimeUtils
@@ -190,11 +190,8 @@ class DashboardContextBuilder:
             d.weekday_short = d.dt.astimezone().strftime(self.app_settings.formats.daily)
 
         # Pressure conversion: OpenWeather returns pressure in hPa
-        pressure_hpa = weather.current.pressure
-        pressure_value = (
-            pressure_hpa
-            if self.user_settings.is_metric
-            else UnitConverter.hpa_to_inhg(pressure_hpa)
+        pressure_value = format_pressure(
+            weather.current.pressure, imperial=not self.user_settings.is_metric
         )
 
         # Build the complete context

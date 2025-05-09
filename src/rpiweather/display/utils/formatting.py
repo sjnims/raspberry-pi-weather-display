@@ -41,3 +41,47 @@ def format_precip(
             s = s.rstrip("0").rstrip(".")
         return s
     return f"{amount:.2f}"
+
+
+def format_pressure(
+    pressure_hpa: float,
+    imperial: bool = False,
+) -> str:
+    """Format pressure with appropriate units.
+
+    Args:
+        pressure_hpa: Pressure in hPa
+        imperial: Whether to use imperial units (inHg)
+
+    Returns:
+        Formatted pressure string with units
+    """
+    if imperial:
+        value = UnitConverter.hpa_to_inhg(pressure_hpa)
+        return f"{value:.2f} inHg"
+    return f"{int(pressure_hpa)} hPa"
+
+
+def format_temperature(temp: float, unit: str = "°F") -> str:
+    """Format temperature value with unit.
+
+    Args:
+        temp: Temperature value
+        unit: Temperature unit
+
+    Returns:
+        Formatted temperature string
+    """
+    return f"{round(temp)}{unit}"
+
+
+def format_percentage(value: float) -> str:
+    """Format value as percentage.
+
+    Args:
+        value: Value to format (0-1)
+
+    Returns:
+        Formatted percentage string
+    """
+    return f"{round(value * 100)}%"
